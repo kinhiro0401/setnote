@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SETNOTE</title>
+<meta name="theme-color" content="#0D0E0B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SETNOTE">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='26' fill='%23D4FF3A'/%3E%3Cg transform='translate(16 16) scale(.73)'%3E%3Cg transform='skewX(-12) translate(14 0)' fill='%230D0E0B'%3E%3Crect x='20' y='24' width='13' height='72' rx='3'/%3E%3Crect x='41' y='24' width='13' height='72' rx='3'/%3E%3Crect x='62' y='24' width='13' height='72' rx='3'/%3E%3Crect x='83' y='24' width='13' height='72' rx='3'/%3E%3C/g%3E%3Cpath d='M8 88L112 34' stroke='%23F4F5EE' stroke-width='13' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* デザインの正: design/DESIGN.md と design/screens/*.html
+   1〜3章の色・文字・余白・角丸をここで定数化。アクセントは --accent の1か所で差し替える
+   （候補: #D4FF3A / #FF7A45 / #6CCBFF / #F4F5EE） */
+:root{
+  --accent:#D4FF3A;
+  --bg:#0D0E0B;--surface:#181A15;--surface-raised:#22241D;--track:#2C2F26;--bar-muted:#3A3D32;
+  --text:#F4F5EE;--text-muted:#A3A69A;--on-accent:#0D0E0B;
+  --pad-x:24px;--pad-top:max(calc(env(safe-area-inset-top) + 8px),24px);
+  --r-card:24px;--r-field:16px;--r-row:14px;--r-bar:8px;
+  --tabbar-h:72px;
+  --font:"Space Grotesk","Noto Sans JP",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;min-width:0}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:500 15px/20px var(--font);overflow-x:clip}
+button,input,select,textarea{font-family:inherit}
+a{color:var(--text);text-decoration:none}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+svg.i{display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* 画面の枠 */
+main{max-width:560px;margin:0 auto;padding:var(--pad-top) var(--pad-x) calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 24px)}
+
+/* タイポグラフィ（2章） */
+.t-num{font-size:52px;line-height:60px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.t-menu{font-family:"Noto Sans JP",var(--font);font-size:30px;line-height:36px;font-weight:900;margin:0}
+.t-title{font-family:"Noto Sans JP",var(--font);font-size:28px;line-height:36px;font-weight:900;margin:0}
+.t-section{font-size:14px;line-height:20px;font-weight:700;margin:0}
+.t-sub{font-size:13px;line-height:18px;color:var(--text-muted)}
+.t-label{font-size:12px;line-height:16px;font-weight:700}
+.t-min{font-size:11px}
+
+/* 共通部品（4章） */
+.icon-btn{flex:none;width:44px;height:44px;border:0;border-radius:22px;background:var(--surface);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.btn-primary{height:52px;width:100%;border:0;border-radius:26px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:700;cursor:pointer;padding:0 20px}
+.btn-primary.lg{height:60px;border-radius:30px;font-size:17px}
+.btn-primary.dark{background:var(--on-accent);color:var(--text)}
+.btn-primary.light{background:var(--text);color:var(--on-accent)}
+.chip-s{height:44px;padding:0 13px;border:0;border-radius:22px;background:var(--surface);color:var(--text);font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;flex:none}
+.chip-s[aria-pressed=true]{background:var(--text);color:var(--on-accent)}
+.card-s{background:var(--surface);border-radius:var(--r-card);padding:20px}
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.sec-head a,.sec-head button.link{font-size:13px;line-height:20px;color:var(--text-muted);background:none;border:0;cursor:pointer;min-height:44px;display:flex;align-items:center;padding:0}
+.list-row{min-height:52px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--surface-raised)}
+.list-row:last-child{border-bottom:0}
+
+/* タブバー */
+#tabbar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--bg);border-top:1px solid var(--surface-raised);padding:0 var(--pad-x) env(safe-area-inset-bottom)}
+#tabbar .in{max-width:512px;margin:0 auto;height:var(--tabbar-h);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#tabbar a{letter-spacing:.1em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:500;color:var(--text-muted)}
+#tabbar a[aria-current=page]{font-weight:700;color:var(--text)}
+body.no-tabbar #tabbar{display:none}
+
+/* 英語の見出し（太いコンデンス体） */
+.nk{font-family:"Bebas Neue","Anton","Noto Sans JP",sans-serif!important;font-weight:400!important;font-style:italic;font-synthesis:style;text-transform:uppercase;letter-spacing:.01em;padding-right:.08em}
+.t-title.nk{font-size:54px;line-height:52px}.t-menu.nk{font-size:50px;line-height:48px}.w-title h1.nk{font-size:54px;line-height:52px}
+.up{text-transform:uppercase;letter-spacing:.04em}
+.logo{display:inline-flex;align-items:center;gap:.22em;font-family:"Bebas Neue","Anton",sans-serif;font-style:italic;font-synthesis:style;line-height:1;letter-spacing:.02em;color:var(--text);white-space:nowrap}
+.title-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.foot-logo{margin-top:36px;padding-top:24px;border-top:1px solid var(--surface-raised);display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-muted);font-size:11px;letter-spacing:.14em}
+/* ホーム（5.1） */
+.eyebrow{font-size:11px;line-height:16px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.t-section .ja{margin-left:8px;font-size:11px;font-weight:500;color:var(--text-muted);letter-spacing:0}
+.t-section{letter-spacing:.14em}
+.menu-card{position:relative;overflow:hidden}.menu-card>*{position:relative}
+.mc-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:-6px -4px 0 0}
+.menu-card .btn-primary{letter-spacing:.06em}
+.home-list .kind{flex:none;width:64px;height:64px;border-radius:var(--r-field);background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--text)}
+.home-list .list-row{min-height:84px}
+.home-list .nm{display:flex;flex-direction:column;gap:2px;font-weight:700}.home-list .nm small{font-size:11px;line-height:16px;font-weight:500;color:var(--text-muted)}
+.eq-art{display:block}.eq-art .f,.eq-art .f2,.eq-art .s{fill:none;stroke-linecap:round;stroke-linejoin:round}.eq-art .f{stroke:var(--text-muted);stroke-width:4}.eq-art .f2{stroke:var(--bar-muted);stroke-width:3}.eq-art .s{stroke:var(--text);stroke-width:3.5}.eq-art .p{fill:var(--text)}.eq-art .m{fill:var(--bar-muted)}.eq-art .d{fill:var(--track)}.eq-art .a{fill:var(--accent)}.eq-art .g{fill:var(--text-muted)}.eq-art .h{fill:var(--surface)}
+.home-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.home-head>div{display:flex;flex-direction:column;gap:4px}
+.week{margin-top:20px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.week>div{display:flex;flex-direction:column;align-items:center;gap:6px}
+.week .dow{font-size:10px;font-weight:500;letter-spacing:.08em;color:var(--text-muted)}
+.week .day{width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600}
+.week .off .day{color:var(--text-muted)}
+.week .dot{width:6px;height:6px;border-radius:3px;background:var(--track)}
+.week .did .dot{background:var(--accent)}
+.week .today .dow{color:var(--text);font-weight:700}
+.week .today .day{background:var(--text);color:var(--on-accent);font-weight:700}
+.week .today:not(.did) .dot{background:var(--bg)}
+.menu-card{margin-top:20px;padding:20px;border-radius:var(--r-card);background:var(--accent);color:var(--on-accent);display:flex;flex-direction:column}
+.menu-card .t-label{letter-spacing:.08em}
+.menu-card .t-menu{margin-top:6px}
+.menu-card .meta2{margin-top:4px;font-size:13px;line-height:18px;font-weight:500}
+.menu-card .btn-primary{margin-top:18px}
+.home-list{margin-top:8px;display:flex;flex-direction:column}
+.home-list .no{width:22px;font-size:13px;font-weight:600;color:var(--text-muted);flex:none}
+.home-list .nm{flex:1;font-size:15px;font-weight:500}
+.home-list .rt2{font-size:13px;color:var(--text-muted);white-space:nowrap}
+.empty-s{padding:32px 0;text-align:center;color:var(--text-muted);font-size:13px;line-height:18px}
+
+/* ワークアウト記録（5.2） */
+body.no-tabbar main{padding-bottom:calc(env(safe-area-inset-bottom) + 190px)}
+.w-head{height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.w-head .mid{display:flex;flex-direction:column;align-items:center;text-align:center}
+.w-head .nm{font-size:15px;line-height:20px;font-weight:700;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.w-head .eyebrow{color:var(--text-muted);font-size:11px}
+.pill{flex:none;height:44px;padding:0 16px;border:0;border-radius:22px;background:var(--surface);color:var(--text);font-size:13px;font-weight:700;letter-spacing:.1em;cursor:pointer}
+.segs{margin:12px calc(var(--pad-x) * -1) 0;padding:2px var(--pad-x);display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.segs::-webkit-scrollbar{display:none}
+.segs button{flex:1 0 40px;padding:0;border:0;background:none;display:flex;flex-direction:column;align-items:stretch;gap:6px;cursor:pointer;color:var(--text-muted)}
+.segs button i{height:40px;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;opacity:.55}
+.segs .cur i{opacity:1;box-shadow:inset 0 0 0 2px var(--text);color:var(--text)}.segs .done i{opacity:.9}
+.segs button span{display:block;width:100%;height:4px;border-radius:2px;background:var(--track)}
+.segs .done span{background:var(--accent)}.segs .cur span{background:var(--text)}
+.w-title{margin-top:16px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.w-title>div:first-child{display:flex;flex-direction:column;gap:4px}
+.w-title h1{color:var(--accent);margin:0;font-family:"Noto Sans JP",var(--font);font-size:24px;line-height:34px;font-weight:900}
+.w-art{flex:none;width:88px;height:88px;border-radius:var(--r-card);background:var(--surface);display:flex;align-items:center;justify-content:center}
+.num-grid{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.num-card{padding:16px;border-radius:var(--r-card);background:var(--surface);display:flex;flex-direction:column}
+.num-card .t-label{color:var(--text-muted);display:flex;align-items:baseline;gap:8px}.num-card .ja{font-size:11px;font-weight:500}
+.num-val{margin-top:8px;display:flex;align-items:baseline;gap:6px}
+.num-val span{font-size:15px;font-weight:600;color:var(--text-muted);flex:none}
+.unit-btn{flex:none;align-self:center;min-width:40px;height:36px;padding:0 8px;border:0;border-radius:18px;background:var(--surface-raised);color:var(--text);font-size:14px;font-weight:700;cursor:pointer}
+.big-in{flex:1;width:100%;min-height:0;height:60px;padding:0;border:0;border-radius:8px;background:none;color:var(--text);font-size:52px;line-height:60px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.big-in.sm{font-size:40px}.big-in.xs{font-size:30px}
+.pm{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pm button{height:48px;border:0;border-radius:var(--r-field);background:var(--surface-raised);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.set-list{margin-top:16px;display:flex;flex-direction:column;gap:4px}
+.set-row{height:44px;padding:0 14px;border:0;border-radius:var(--r-row);display:flex;align-items:center;gap:14px;background:var(--surface);color:var(--text-muted);font:inherit;text-align:left;width:100%}
+.set-row .no{width:18px;font-size:13px;font-weight:700}.set-row .tx{flex:1;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-row.done{color:var(--text);cursor:pointer}.set-row .ck{color:var(--accent)}
+.set-row.cur{background:var(--text);color:var(--on-accent)}.set-row .st{font-size:12px;font-weight:700}
+.w-more{margin-top:20px;border-top:1px solid var(--surface-raised);padding-top:4px}
+.w-more summary{min-height:44px;display:flex;align-items:center;font-size:13px;color:var(--text-muted);cursor:pointer;list-style:none}.w-more summary::-webkit-details-marker{display:none}
+.w-dock{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--bg);padding:0 var(--pad-x) calc(env(safe-area-inset-bottom) + 24px)}
+.w-dock .in{max-width:512px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.rest-box{height:56px;padding:0 8px 0 18px;border-radius:20px;background:var(--surface);display:flex;align-items:center;gap:12px}
+.rest-box .lb{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--text-muted)}
+.rest-box .tm{flex:1;font-size:26px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.rest-box button{height:44px;padding:0 16px;border:0;border-radius:var(--r-row);background:var(--surface-raised);color:var(--text);font-size:14px;font-weight:700;cursor:pointer}
+.rest-idle{height:56px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text-muted);text-align:center}
+body.no-tabbar #toast{bottom:calc(env(safe-area-inset-bottom) + 176px)}
+
+/* 種目（5.3） */
+.search{margin:16px 0 0;height:48px;padding:0 16px;border-radius:var(--r-field);background:var(--surface);display:flex;align-items:center;gap:10px;color:var(--text-muted)}
+.search input{flex:1;height:44px;min-height:0;padding:0;border:0;border-radius:0;outline:0;background:transparent;color:var(--text);font-size:16px}
+.chips{margin:16px calc(var(--pad-x) * -1) 0;padding:0 var(--pad-x);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.ex-list{margin-top:12px;display:flex;flex-direction:column;padding-bottom:76px}
+.ex-row{min-height:72px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--surface-raised)}.ex-row:last-child{border-bottom:0}
+.ex-row .kind{flex:none;width:52px;height:52px;border-radius:var(--r-field);background:var(--surface);display:flex;align-items:center;justify-content:center}.ex-row .kind svg{width:42px;height:42px}.ex-row .kind svg.i{width:24px;height:24px}
+.ex-row .tx{flex:1;display:flex;flex-direction:column;gap:2px}
+.ex-row .n1{font-size:15px;line-height:20px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ex-row .n2{font-size:12px;line-height:16px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ex-row .add{flex:none;width:44px;height:44px;border:0;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--surface-raised);color:var(--text)}
+.ex-row .add.on{background:var(--accent);color:var(--on-accent)}.ex-row .add svg{width:18px;height:18px}
+.ex-dock{position:fixed;left:0;right:0;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom));z-index:4;background:var(--bg);padding:12px var(--pad-x) 16px}
+.ex-dock .in{max-width:512px;margin:0 auto}
+
+/* 記録（5.4） */
+.p-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;color:var(--text-muted)}
+.p-top .t-label{display:flex;align-items:baseline;gap:8px}.p-top .ja{font-size:11px;font-weight:500}.t-min2{font-size:12px;line-height:16px;white-space:nowrap}
+.p-big{margin-top:8px;display:flex;align-items:baseline;gap:8px}.p-big .t-num{line-height:56px}.p-big .u{font-size:17px;font-weight:600;color:var(--text-muted)}
+.p-segs{margin-top:14px;display:grid;gap:6px}.p-segs div{height:8px;border-radius:4px;background:var(--track)}.p-segs .on{background:var(--accent)}
+.p-bars{margin-top:14px;height:164px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:end}
+.p-bars>div{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--text-muted)}
+.p-bars .v{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}.p-bars .d{font-size:11px;white-space:nowrap}
+.p-bars .b{width:100%;border-radius:var(--r-bar);background:var(--bar-muted)}.p-bars .b.z{background:var(--track);border-radius:2px}
+.p-bars .cur{color:var(--text)}.p-bars .cur .v,.p-bars .cur .d{font-weight:700}.p-bars .cur .b:not(.z){background:var(--accent)}
+.pb-row,.h-item summary{min-height:56px;display:flex;align-items:center;gap:12px}
+.pb-row{border-bottom:1px solid var(--surface-raised)}.pb-row:last-child{border-bottom:0}
+.pb-row .tx,.h-item .tx{flex:1;display:flex;flex-direction:column;gap:2px;padding:8px 0}
+.pb-row .n1,.h-item .n1{font-size:15px;line-height:20px;font-weight:700}.pb-row .n2,.h-item .n2{font-size:12px;line-height:16px;color:var(--text-muted)}
+.pb-row .val{font-size:17px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.h-item{border-bottom:1px solid var(--surface-raised)}.h-item:last-child{border-bottom:0}
+.h-item summary{cursor:pointer;list-style:none;color:var(--text)}.h-item summary::-webkit-details-marker{display:none}.h-item summary svg{color:var(--text-muted);flex:none}.h-item[open] summary svg{transform:rotate(180deg)}
+.kind2{flex:none;width:48px;height:48px;border-radius:var(--r-row);background:var(--surface-raised);display:flex;align-items:center;justify-content:center}
+
+/* 既存画面（順に置き換える）をテーマに合わせるための共通スタイル */
+h1{font-size:28px;line-height:36px;margin:0 0 6px}
+h2{font-size:24px;line-height:30px;margin:0}
+h3{font-size:14px;line-height:20px;margin:28px 0 10px}
+.num,.big,.stat b{font-variant-numeric:tabular-nums}
+.lead{color:var(--text-muted);font-size:13px;line-height:18px;margin:0 0 18px}
+.meta{color:var(--text-muted);font-size:13px;line-height:18px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{white-space:nowrap;font:700 14px var(--font);min-height:44px;padding:0 16px;border-radius:22px;border:0;background:var(--surface-raised);color:var(--text);cursor:pointer}
+.btn.pri{background:var(--accent);color:var(--on-accent)}
+.btn.dark{background:var(--text);color:var(--on-accent)}
+.btn.ghost{background:transparent;color:var(--text-muted)}.btn.sm{min-height:44px;font-size:14px;padding:0 14px}
+input,select,textarea{font-size:16px;color:var(--text);background:var(--surface-raised);border:0;border-radius:var(--r-field);min-height:44px;padding:0 12px;width:100%}
+textarea{padding:12px;min-height:90px}
+.card{background:var(--surface);border-radius:var(--r-card);padding:20px;margin:0 0 12px}
+.ch{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.ico{flex:none;width:44px;height:44px;border:0;background:transparent;color:var(--text-muted);font-size:22px;border-radius:22px;cursor:pointer}
+.chip{display:inline-block;margin:10px 0 4px;border:0;background:var(--surface-raised);color:var(--text);border-radius:var(--r-field);padding:10px 12px;font:500 13px var(--font);cursor:pointer;text-align:left;min-height:44px}
+.chip b{font-weight:700;margin-right:6px}.chip.empty{color:var(--text-muted)}
+.sets{margin:10px 0}
+.sh,.set{display:grid;grid-template-columns:2.4em minmax(0,1fr) minmax(0,1fr) 52px;gap:8px;align-items:center}
+.sh.c,.set.c{grid-template-columns:2.4em minmax(0,1fr) minmax(0,1fr) minmax(0,1.1fr) 52px}
+.sh{font-size:12px;font-weight:700;color:var(--text-muted);padding:0 4px 4px}
+.set{padding:4px;border-radius:var(--r-row)}.set+.set{margin-top:4px}
+.set .num{font-size:15px;text-align:center;color:var(--text-muted)}
+.set input{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.set .lv{text-align:left;font-weight:500}
+.set.done{background:var(--surface-raised)}.set.done input{background:transparent}
+.tick{height:44px;border-radius:22px;border:0;background:var(--surface-raised);color:var(--text-muted);font-size:18px;cursor:pointer}
+.set.done .tick{background:var(--accent);color:var(--on-accent)}
+.plates{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 0;font-size:13px;color:var(--text-muted)}.plates svg{height:58px;width:auto}
+.hero{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:end;margin-bottom:16px}
+.stats{display:flex;gap:22px;flex-wrap:wrap}.stat{font-size:12px;font-weight:700;color:var(--text-muted)}.stat b{display:block;font-size:32px;line-height:38px;color:var(--text);white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px}
+.grid .card{margin:0;display:flex;flex-direction:column;gap:8px}.grid .card .row{margin-top:auto}
+ol.ex{margin:0;padding-left:1.3em;font-size:13px;line-height:20px}ol.ex span{color:var(--text-muted);white-space:nowrap}
+.fig{position:relative;min-height:240px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+details.card summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;min-height:28px}
+details.card summary::-webkit-details-marker{display:none}
+.hl{font-weight:700}.su{display:grid;grid-template-columns:7em minmax(0,1fr);gap:2px 10px;font-size:13px;margin:8px 0}.su dt{color:var(--text-muted)}.su dd{margin:0}
+.rt{display:grid;grid-template-columns:minmax(0,1fr) 3.6em 4.8em 44px;gap:6px;align-items:center;margin-top:6px}
+.empty-note{border-radius:var(--r-card);background:var(--surface);padding:22px;color:var(--text-muted);text-align:center;font-size:13px}
+.gcat{font-size:14px;margin:18px 0 6px;padding-top:12px;border-top:1px solid var(--surface-raised)}
+.eqr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0}.eqr>.row{flex:none}.eqr+.eqr{border-top:1px solid var(--surface-raised)}
+label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin:12px 0 6px}
+#sync{font-size:13px;color:var(--text-muted)}#sync.on::before{content:"";display:inline-block;width:8px;height:8px;border-radius:4px;background:var(--accent);margin-right:6px}
+
+/* 休憩・トースト・モーダル */
+#rest{position:fixed;left:0;right:0;bottom:0;background:var(--surface);padding:10px var(--pad-x) calc(10px + env(safe-area-inset-bottom));display:none;z-index:6}
+#rest.show{display:block}#rest .row{max-width:512px;margin:auto;justify-content:space-between}
+#rest .big{font-size:26px;font-weight:700;color:var(--accent);margin-left:8px;font-variant-numeric:tabular-nums}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px);background:var(--text);color:var(--on-accent);padding:10px 16px;border-radius:var(--r-field);display:none;gap:12px;align-items:center;z-index:7;max-width:calc(100vw - 48px);font-size:13px;line-height:18px;font-weight:500}
+#toast.show{display:flex}#toast button{background:transparent;border:0;color:var(--on-accent);text-decoration:underline;font-weight:700;font-size:13px;min-height:36px;cursor:pointer}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;padding:16px;z-index:8}
+#modal.show{display:flex}#modal form{background:var(--surface);border-radius:var(--r-card);padding:20px;width:min(512px,100%);max-height:90vh;overflow:auto}
+@media (prefers-reduced-motion:no-preference){.set{transition:background .2s}}
+</style></head><body>
+<main id="main"></main>
+<nav id="tabbar" aria-label="メイン"><div class="in">
+<a href="#home" data-tab="home"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-5H9v5H4z"/></svg><span>HOME</span></a>
+<a href="#exercises" data-tab="exercises"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7v10M17.5 7v10M3 9.5v5M21 9.5v5M6.5 12h11"/></svg><span>WORKOUT</span></a>
+<a href="#progress" data-tab="progress"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg><span>PROGRESS</span></a>
+</div></nav>
+<div id="toast"><span id="toastMsg"></span><button id="toastUndo">元に戻す</button></div>
+<div id="modal"><form id="suForm"><h2 id="suTitle">設定</h2>
+<label for="f-seat">シート高さ</label><input id="f-seat" placeholder="例: 4">
+<label for="f-back">背もたれ・パッド</label><input id="f-back" placeholder="例: 背もたれ2 / 足パッド5">
+<label for="f-pin">ピン・負荷・ラック位置</label><input id="f-pin" placeholder="例: セーフティ8 / J-フック11">
+<label for="f-grip">グリップ・スタンス</label><input id="f-grip" placeholder="例: 人差し指を81cmラインに">
+<label for="f-note">フォームのメモ</label><textarea id="f-note" placeholder="例: 肩甲骨を寄せて下げる。お尻を浮かせない"></textarea>
+<div class="row" style="margin-top:16px;justify-content:space-between"><button type="button" class="btn ghost" id="suDel">設定を削除</button><div class="row"><button type="button" class="btn" id="suCancel">キャンセル</button><button class="btn pri">保存</button></div></div></form></div>
+<datalist id="exlist"></datalist>
+<script>
+{
+const EXS=[['胸',['ベンチプレス*','インクライン・ダンベルプレス','チェストプレス','ペックフライ','ディップス']],['背中',['デッドリフト*','ラットプルダウン','シーテッドロー','ベントオーバーロウ*','懸垂']],['脚',['スクワット*','レッグプレス','ルーマニアン・デッドリフト*','レッグエクステンション','レッグカール','カーフレイズ']],['肩',['ショルダープレス','サイドレイズ','フェイスプル']],['腕',['バーベルカール*','ダンベルカール','トライセプス・プッシュダウン']],['体幹',['アブローラー','ケーブルクランチ']]];
+const BB=new Set(),ALL=[];
+EXS.forEach(([,l])=>l.forEach(n=>{if(n.endsWith('*')){n=n.slice(0,-1);BB.add(n)}ALL.push(n)}));
+const P=(id,name,note,rest,items)=>({id,name,note,rest,items:items.map(([ex,sets,reps])=>({ex,sets,reps}))});
+const PRESETS=[
+P('p-a','全身 A（初心者）','週3回、AとBを交互に。毎回2.5kgずつ重量を上げていく定番の組み方。',150,[['スクワット',3,'5'],['ベンチプレス',3,'5'],['ベントオーバーロウ',3,'5']]),
+P('p-b','全身 B（初心者）','Aの翌回に。デッドリフトは1セットだけ全力で。',150,[['スクワット',3,'5'],['ショルダープレス',3,'5'],['デッドリフト',1,'5'],['ラットプルダウン',3,'8-10']]),
+P('p-push','プッシュ（胸・肩・三頭）','プッシュ→プル→レッグの順に週3〜6回まわす分割。',120,[['ベンチプレス',4,'6-8'],['インクライン・ダンベルプレス',3,'8-10'],['ショルダープレス',3,'8-10'],['サイドレイズ',3,'12-15'],['トライセプス・プッシュダウン',3,'10-12']]),
+P('p-pull','プル（背中・二頭）','背中は重い種目から。フェイスプルで肩の後ろも。',120,[['デッドリフト',3,'5'],['ラットプルダウン',3,'8-10'],['シーテッドロー',3,'10-12'],['フェイスプル',3,'15'],['ダンベルカール',3,'10-12']]),
+P('p-legs','レッグ（脚・お尻）','スクワットの後は高回数のマシン種目で追い込む。',150,[['スクワット',4,'6-8'],['ルーマニアン・デッドリフト',3,'8-10'],['レッグプレス',3,'10-12'],['レッグカール',3,'12-15'],['カーフレイズ',3,'15']])];
+PRESETS.unshift(P('p-nb','マシン中心・全身（長堀橋向け）','FITBASE24 長堀橋のストレングスマシン8台で一周し、最後にトレッドミル20分で締める全身メニュー。重さはピンで変えるだけなので混雑時も回しやすい。',90,[['チェストプレス',3,'10-12'],['ラットプルダウン',3,'10-12'],['ショルダープレス',3,'10-12'],['シーテッドロー',3,'10-12'],['レッグプレス',3,'10-12'],['レッグエクステンション',2,'12-15'],['レッグカール',2,'12-15'],['ロータリートルソー',2,'15'],['トレッドミル',1,'20分']]));
+/* 公式サイト「設備・マシン一覧」2026年11月22日時点 */
+const GYM_PRESET={name:'FITBASE24 長堀橋',src:'https://www.cospa-wellness.co.jp/fitbase24/nagahoribashi/facility/',checked:'2026-11-22',items:[
+['フリーウェイト','パワーラック',1,['スクワット','ベンチプレス','デッドリフト','ベントオーバーロウ','ルーマニアン・デッドリフト','バーベルカール']],
+['フリーウェイト','ファンクショナルトレーナー',1,['ケーブルフライ','フェイスプル','トライセプス・プッシュダウン','ケーブル・サイドレイズ','ケーブルクランチ']],
+['フリーウェイト','スミスマシン',1,['スミス・ベンチプレス','スミス・スクワット','スミス・ショルダープレス','カーフレイズ']],
+['フリーウェイト','バーティカルニーレイズチン',1,['懸垂','ディップス','ハンギング・レッグレイズ']],
+['フリーウェイト','アジャスタブルデクラインベンチ',1,['デクライン・クランチ','デクライン・ベンチプレス']],
+['フリーウェイト','バックエクステンションベンチ',1,['バックエクステンション']],
+['フリーウェイト','マルチアジャスタブルベンチ',1,['インクライン・ダンベルプレス','ダンベルプレス','ダンベル・ショルダープレス']],
+['フリーウェイト','ダンベル（1〜30kg）',1,['ダンベルカール','サイドレイズ','ダンベルロウ','ゴブレットスクワット']],
+['フリーウェイト','TRX',1,['TRXロウ','TRXプッシュアップ']],
+['ストレングス','チェストプレス',1,['チェストプレス']],['ストレングス','ラットプルダウン',1,['ラットプルダウン']],['ストレングス','シーテッドロー',1,['シーテッドロー']],['ストレングス','ショルダープレス',1,['ショルダープレス']],
+['ストレングス','レッグプレス',1,['レッグプレス']],['ストレングス','レッグエクステンション',1,['レッグエクステンション']],['ストレングス','ロータリートルソー',1,['ロータリートルソー']],['ストレングス','レッグカール',1,['レッグカール']],
+['カーディオ','トレッドミル',6,['トレッドミル']],['カーディオ','アップライトバイク',2,['アップライトバイク']],['カーディオ','インドアサイクル',2,['インドアサイクル']],['カーディオ','アセントトレーナー（クロストレーナー）',2,['アセントトレーナー（クロストレーナー）']]
+].map(([cat,n,count,ex])=>({cat,n,count,ex}))};
+const CATS=['フリーウェイト','ストレングス','カーディオ'];
+const $=s=>document.querySelector(s),main=$('#main');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const DEF={routines:[],setups:{},custom:[],bar:20,rest:90,gym:null,goal:4,unit:'kg'};
+const LS='setnote.v1';
+let S={sessions:[],config:clone(DEF)};
+try{const j=JSON.parse(localStorage.getItem(LS)||'null');if(j&&j.config&&Array.isArray(j.sessions))S=j}catch(e){}
+S.config=Object.assign(clone(DEF),S.config);
+let tab='home',histEx='',col=null,dirty=new Set(),wt=0,flushing=false,firstDef=true,pending=false;
+const active=()=>S.sessions.find(s=>!s.end);
+const done=()=>S.sessions.filter(s=>s.end).sort((a,b)=>b.start-a.start);
+const CARDIO_BASE=['トレッドミル','アップライトバイク','インドアサイクル','アセントトレーナー（クロストレーナー）','エアロバイク','ランニング','ウォーキング','ローイング'];
+const okSets=it=>it.sets.filter(s=>s.ok&&(+s.r>0||+s.m>0));
+const isC=it=>!!it.cardio;
+const cMin=it=>okSets(it).reduce((a,x)=>a+(+x.m||0),0),cKm=it=>okSets(it).reduce((a,x)=>a+(+x.d||0),0);
+const sMin=s=>s.items.filter(isC).reduce((a,it)=>a+cMin(it),0);
+const cTxt=it=>{const m=cMin(it),d=cKm(it);return m?`${+m.toFixed(1)}分${d?` ・ ${+d.toFixed(2)}km`:''}`:''};
+const setTxt=it=>isC(it)?cTxt(it):okSets(it).map(x=>`${toU(x.w)}×${x.r}`).join('、')+(okSets(it).length?' '+unit():'');
+const vol=s=>s.items.reduce((t,it)=>isC(it)?t:t+okSets(it).reduce((a,x)=>a+(+x.w||0)*(+x.r||0),0),0);
+const e1=(w,r)=>w*(1+r/30);
+const fmtD=t=>{const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()}(${'日月火水木金土'[d.getDay()]})`};
+const mmss=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const kg=n=>Math.round(n).toLocaleString('ja-JP');
+/* 重量の単位。保存は常に kg、表示と入力だけ lb に換算する（0.5 lb 刻みに丸める） */
+const LB=2.20462,isLb=()=>S.config.unit==='lb',unit=()=>isLb()?'lb':'kg';
+const toU=k=>isLb()?Math.round((+k||0)*LB*2)/2:Math.round((+k||0)*100)/100;
+const fromU=v=>isLb()?+((+v||0)/LB).toFixed(2):+v||0;
+const fmtW=k=>`${toU(k)} ${unit()}`;
+const volTxt=v=>isLb()?`${kg(v*LB)} lb`:`${kg(v)} kg`;
+const gym=()=>S.config.gym||GYM_PRESET;
+const myGym=()=>{if(!S.config.gym)S.config.gym=clone(GYM_PRESET);return S.config.gym};
+const allEx=()=>[...new Set([...ALL,...CARDIO_BASE.slice(4),...gym().items.flatMap(i=>i.ex),...S.config.custom])];
+const equipFor=ex=>{const e=gym().items.find(i=>i.ex.includes(ex));return e?e.n:''};
+const isEquip=n=>gym().items.some(i=>i.n===n);
+const isCardio=n=>CARDIO_BASE.includes(n)||gym().items.some(i=>i.cat==='カーディオ'&&(i.n===n||i.ex.includes(n)));
+
+/* 保存（このブラウザ＋クラウド） */
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+function save(k){dirty.add(k);saveLocal();clearTimeout(wt);wt=setTimeout(flush,600)}
+async function flush(){
+  if(!col||flushing)return;flushing=true;
+  try{while(dirty.size){const k=[...dirty][0];dirty.delete(k);
+    const body=k==='config'?S.config:S.sessions.find(s=>'s_'+s.id===k);
+    try{body?await col.doc(k).set(clone(body)):await col.doc(k).delete()}
+    catch(e){const c=e&&e.code;if(c==='quota_exceeded')toast('保存容量の上限です。古い記録を削除してください');
+      else if(c==='invalid_argument'||c==='revoked'||c==='not_granted'){col=null;setSync('この端末にのみ保存中',false);break}
+      else{dirty.add(k);await new Promise(r=>setTimeout(r,1500+Math.random()*1000));break}}}}
+  finally{flushing=false}
+}
+let syncState={t:'このブラウザに保存',on:false};
+function setSync(t,on){syncState={t,on:!!on};const el=$('#sync');if(el){el.textContent=t;el.classList.toggle('on',!!on)}}
+function applySnap(snap){
+  const cloud={};snap.docs.forEach(d=>{if(d.exists)cloud[d.id]=d.data()});
+  const def=!snap.metadata.fromCache;let ch=false;
+  if(def&&firstDef){firstDef=false;
+    if(!cloud.config&&(S.config.routines.length||Object.keys(S.config.setups).length||S.config.custom.length))dirty.add('config');
+    S.sessions.forEach(s=>{if(!cloud['s_'+s.id])dirty.add('s_'+s.id)})}
+  if(cloud.config&&!dirty.has('config')){const c=Object.assign(clone(DEF),clone(cloud.config));if(JSON.stringify(c)!==JSON.stringify(S.config)){S.config=c;ch=true}}
+  const ids=new Set();
+  for(const k in cloud){if(!k.startsWith('s_'))continue;ids.add(k);if(dirty.has(k))continue;
+    const i=S.sessions.findIndex(s=>'s_'+s.id===k),v=clone(cloud[k]);
+    if(i<0){S.sessions.push(v);ch=true}else if(JSON.stringify(S.sessions[i])!==JSON.stringify(v)){S.sessions[i]=v;ch=true}}
+  if(def){const n=S.sessions.length;S.sessions=S.sessions.filter(s=>ids.has('s_'+s.id)||dirty.has('s_'+s.id));if(n!==S.sessions.length)ch=true}
+  if(ch){saveLocal();render(false)}
+  if(dirty.size)flush();
+}
+async function connect(){
+  if(!window.claude||!claude.use)return;
+  try{const [db,u]=await Promise.all([claude.use('db'),claude.use('user')]);
+    if(!db||!u)return;const id=await u.id();if(!id)return;
+    col=db.collection('data/users/'+id);setSync('同期中…',false);
+    const t=setTimeout(()=>setSync('クラウドに接続できません（端末に保存中）',false),10000);
+    col.onSnapshot(snap=>{if(!snap.metadata.fromCache){clearTimeout(t);setSync('クラウドに同期済み',true)}applySnap(snap)},
+      e=>{clearTimeout(t);col=null;setSync('この端末にのみ保存中',false)});
+  }catch(e){col=null}
+}
+
+/* 小物 */
+let undoFn=null,tt=0;
+function toast(msg,undo){$('#toastMsg').textContent=msg;undoFn=undo||null;$('#toastUndo').style.display=undo?'':'none';$('#toast').classList.add('show');clearTimeout(tt);tt=setTimeout(()=>$('#toast').classList.remove('show'),5000)}
+$('#toastUndo').onclick=()=>{if(undoFn)undoFn();undoFn=null;$('#toast').classList.remove('show');render()};
+function setupKey(ex){if(S.config.setups[ex])return ex;const e=equipFor(ex);return e&&S.config.setups[e]?e:ex}
+function setupText(ex){const s=S.config.setups[setupKey(ex)];if(!s)return'';return [s.seat&&'シート '+s.seat,s.back,s.pin,s.grip].filter(Boolean).join(' / ')||(s.note?'メモあり':'')}
+function lastFor(ex,skip){for(const s of done()){if(s.id===skip)continue;const it=s.items.find(i=>i.ex===ex&&okSets(i).length);if(it)return it}return null}
+const PL=[[25,'#F4F5EE',56],[20,'#F4F5EE',52],[15,'#A3A69A',48],[10,'#A3A69A',42],[5,'#3A3D32',32],[2.5,'#3A3D32',26],[1.25,'#3A3D32',22]];
+function plateSVG(w){
+  let side=(w-S.config.bar)/2;if(side<=0)return'';const out=[];
+  for(const p of PL)while(side>=p[0]-1e-9){out.push(p);side-=p[0]}
+  if(!out.length)return'';let x=36;
+  const g=out.map(([p,c,h])=>{const wd=p>=10?12:p>=5?9:7,r=`<rect x="${x}" y="${32-h/2}" width="${wd}" height="${h}" rx="2" fill="${c}" stroke="#0007"/>`;x+=wd+2;return r}).join('');
+  return `<div class="plates"><svg viewBox="0 0 ${x+34} 64" role="img" aria-label="片側のプレート"><rect x="0" y="29" width="${x+30}" height="6" rx="3" fill="#8d9196"/><rect x="28" y="20" width="6" height="24" rx="1" fill="#5d6166"/>${g}<rect x="${x}" y="23" width="7" height="18" rx="2" fill="#44474c"/></svg><span>片側 ${out.map(o=>o[0]).join(' + ')} kg（バー${S.config.bar}kg）${side>0.01?` ・ 残り${+side.toFixed(2)}kgは組めません`:''}</span></div>`;
+}
+
+/* 今日 */
+/* ホーム（DESIGN 5.1） */
+const PART_X={'チェストプレス':'胸','ペックフライ':'胸','ケーブルフライ':'胸','スミス・ベンチプレス':'胸','ダンベルプレス':'胸','デクライン・ベンチプレス':'胸','TRXプッシュアップ':'胸','シーテッドロー':'背中','ダンベルロウ':'背中','TRXロウ':'背中','バックエクステンション':'背中','スミス・スクワット':'脚','ゴブレットスクワット':'脚','スミス・ショルダープレス':'肩','ダンベル・ショルダープレス':'肩','ケーブル・サイドレイズ':'肩','ロータリートルソー':'体幹','ハンギング・レッグレイズ':'体幹','デクライン・クランチ':'体幹'};
+const partOf=ex=>{for(const [p,l] of EXS)if(l.some(n=>n.replace('*','')===ex))return p;return PART_X[ex]||''};
+const ICON={
+  settings:'<svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>',
+  play:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l13-7.5a1 1 0 0 0 0-1.72l-13-7.5A1 1 0 0 0 7 4.5z"/></svg>',
+  back:'<svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>'
+};
+const DOW_EN=['SUN','MON','TUE','WED','THU','FRI','SAT'],MON_EN=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const KIND={
+  barbell:'<path d="M6.5 7v10M17.5 7v10M3 9.5v5M21 9.5v5M6.5 12h11"/>',
+  dumbbell:'<rect x="3" y="8" width="5" height="8" rx="1.5"/><rect x="16" y="8" width="5" height="8" rx="1.5"/><path d="M8 12h8"/>',
+  machine:'<rect x="6" y="4" width="12" height="16" rx="2"/><path d="M6 9h12M6 14h12M12 4v5"/>',
+  cardio:'<path d="M3 12h4l2-5 4 10 2-5h6"/>',
+  body:'<path d="M4 5h16M8 5l4 6 4-6M12 13v6"/><circle cx="12" cy="11" r="2"/>'};
+const EQ_ART={"パワーラック": "<rect class=\"f2\" x=\"29\" y=\"16\" width=\"38\" height=\"68\" rx=\"2\"/><rect class=\"g\" x=\"16\" y=\"8\" width=\"7\" height=\"78\" rx=\"2\"/><rect class=\"g\" x=\"73\" y=\"8\" width=\"7\" height=\"78\" rx=\"2\"/><rect class=\"g\" x=\"16\" y=\"8\" width=\"64\" height=\"7\" rx=\"2\"/><rect class=\"g\" x=\"10\" y=\"84\" width=\"22\" height=\"4\" rx=\"2\"/><rect class=\"g\" x=\"64\" y=\"84\" width=\"22\" height=\"4\" rx=\"2\"/><circle class=\"h\" cx=\"19.5\" cy=\"22\" r=\"1.2\"/><circle class=\"h\" cx=\"19.5\" cy=\"28\" r=\"1.2\"/><circle class=\"h\" cx=\"19.5\" cy=\"46\" r=\"1.2\"/><circle class=\"h\" cx=\"19.5\" cy=\"52\" r=\"1.2\"/><circle class=\"h\" cx=\"19.5\" cy=\"58\" r=\"1.2\"/><circle class=\"h\" cx=\"19.5\" cy=\"70\" r=\"1.2\"/><circle class=\"h\" cx=\"19.5\" cy=\"76\" r=\"1.2\"/><circle class=\"h\" cx=\"76.5\" cy=\"22\" r=\"1.2\"/><circle class=\"h\" cx=\"76.5\" cy=\"28\" r=\"1.2\"/><circle class=\"h\" cx=\"76.5\" cy=\"46\" r=\"1.2\"/><circle class=\"h\" cx=\"76.5\" cy=\"52\" r=\"1.2\"/><circle class=\"h\" cx=\"76.5\" cy=\"58\" r=\"1.2\"/><circle class=\"h\" cx=\"76.5\" cy=\"70\" r=\"1.2\"/><circle class=\"h\" cx=\"76.5\" cy=\"76\" r=\"1.2\"/><rect class=\"a\" x=\"23\" y=\"62\" width=\"9\" height=\"4\" rx=\"1.5\"/><rect class=\"a\" x=\"64\" y=\"62\" width=\"9\" height=\"4\" rx=\"1.5\"/><rect class=\"p\" x=\"2\" y=\"35.5\" width=\"92\" height=\"3\" rx=\"1.5\"/><rect class=\"p\" x=\"7\" y=\"23\" width=\"5.5\" height=\"28\" rx=\"2.5\"/><rect class=\"m\" x=\"1.5\" y=\"27\" width=\"4.5\" height=\"20\" rx=\"2\"/><rect class=\"p\" x=\"83.5\" y=\"23\" width=\"5.5\" height=\"28\" rx=\"2.5\"/><rect class=\"m\" x=\"90\" y=\"27\" width=\"4.5\" height=\"20\" rx=\"2\"/><rect class=\"a\" x=\"23\" y=\"34\" width=\"5\" height=\"7\" rx=\"1.5\"/><rect class=\"a\" x=\"68\" y=\"34\" width=\"5\" height=\"7\" rx=\"1.5\"/>", "ファンクショナルトレーナー": "<rect class=\"g\" x=\"10\" y=\"8\" width=\"9\" height=\"78\" rx=\"2\"/><rect class=\"g\" x=\"77\" y=\"8\" width=\"9\" height=\"78\" rx=\"2\"/><rect class=\"g\" x=\"10\" y=\"8\" width=\"76\" height=\"6\" rx=\"2\"/><rect class=\"g\" x=\"4\" y=\"84\" width=\"22\" height=\"4\" rx=\"2\"/><rect class=\"g\" x=\"70\" y=\"84\" width=\"22\" height=\"4\" rx=\"2\"/><circle class=\"h\" cx=\"14.5\" cy=\"22\" r=\"1.2\"/><circle class=\"h\" cx=\"14.5\" cy=\"28\" r=\"1.2\"/><circle class=\"h\" cx=\"14.5\" cy=\"46\" r=\"1.2\"/><circle class=\"h\" cx=\"14.5\" cy=\"52\" r=\"1.2\"/><circle class=\"h\" cx=\"14.5\" cy=\"58\" r=\"1.2\"/><circle class=\"h\" cx=\"14.5\" cy=\"70\" r=\"1.2\"/><circle class=\"h\" cx=\"14.5\" cy=\"76\" r=\"1.2\"/><circle class=\"h\" cx=\"81.5\" cy=\"22\" r=\"1.2\"/><circle class=\"h\" cx=\"81.5\" cy=\"28\" r=\"1.2\"/><circle class=\"h\" cx=\"81.5\" cy=\"46\" r=\"1.2\"/><circle class=\"h\" cx=\"81.5\" cy=\"52\" r=\"1.2\"/><circle class=\"h\" cx=\"81.5\" cy=\"58\" r=\"1.2\"/><circle class=\"h\" cx=\"81.5\" cy=\"70\" r=\"1.2\"/><circle class=\"h\" cx=\"81.5\" cy=\"76\" r=\"1.2\"/><rect class=\"p\" x=\"32\" y=\"9.5\" width=\"32\" height=\"3\" rx=\"1.5\"/><path class=\"f2\" d=\"M20 35l16 24M76 35L60 59\"/><rect class=\"a\" x=\"9\" y=\"31\" width=\"12\" height=\"7\" rx=\"2\"/><rect class=\"a\" x=\"75\" y=\"31\" width=\"12\" height=\"7\" rx=\"2\"/><path class=\"s\" d=\"M36 59l-6 6M36 59l6 6M60 59l-6 6M60 59l6 6\"/><rect class=\"p\" x=\"27\" y=\"64\" width=\"18\" height=\"5\" rx=\"2.5\"/><rect class=\"p\" x=\"51\" y=\"64\" width=\"18\" height=\"5\" rx=\"2.5\"/>", "スミスマシン": "<path class=\"f2\" d=\"M30 15v70M66 15v70\"/><rect class=\"g\" x=\"16\" y=\"8\" width=\"7\" height=\"78\" rx=\"2\"/><rect class=\"g\" x=\"73\" y=\"8\" width=\"7\" height=\"78\" rx=\"2\"/><rect class=\"g\" x=\"16\" y=\"8\" width=\"64\" height=\"7\" rx=\"2\"/><rect class=\"g\" x=\"10\" y=\"84\" width=\"76\" height=\"4\" rx=\"2\"/><rect class=\"p\" x=\"4\" y=\"44.5\" width=\"88\" height=\"3\" rx=\"1.5\"/><rect class=\"p\" x=\"8\" y=\"32\" width=\"5.5\" height=\"28\" rx=\"2.5\"/><rect class=\"m\" x=\"2\" y=\"36\" width=\"4.5\" height=\"20\" rx=\"2\"/><rect class=\"p\" x=\"82.5\" y=\"32\" width=\"5.5\" height=\"28\" rx=\"2.5\"/><rect class=\"m\" x=\"89.5\" y=\"36\" width=\"4.5\" height=\"20\" rx=\"2\"/><rect class=\"a\" x=\"26.5\" y=\"42\" width=\"7\" height=\"8\" rx=\"2\"/><rect class=\"a\" x=\"62.5\" y=\"42\" width=\"7\" height=\"8\" rx=\"2\"/><rect class=\"p\" x=\"34\" y=\"72\" width=\"28\" height=\"6\" rx=\"3\"/><path class=\"f\" d=\"M40 78v6M56 78v6\"/>", "バーティカルニーレイズチン": "<rect class=\"g\" x=\"44\" y=\"10\" width=\"8\" height=\"76\" rx=\"2\"/><rect class=\"g\" x=\"24\" y=\"84\" width=\"48\" height=\"4\" rx=\"2\"/><rect class=\"p\" x=\"16\" y=\"9\" width=\"64\" height=\"4\" rx=\"2\"/><rect class=\"p\" x=\"16\" y=\"9\" width=\"4\" height=\"12\" rx=\"2\"/><rect class=\"p\" x=\"76\" y=\"9\" width=\"4\" height=\"12\" rx=\"2\"/><path class=\"f\" d=\"M40 55H24M56 55h16\"/><rect class=\"p\" x=\"37\" y=\"30\" width=\"22\" height=\"26\" rx=\"6\"/><rect class=\"p\" x=\"14\" y=\"51\" width=\"18\" height=\"7\" rx=\"3.5\"/><rect class=\"p\" x=\"64\" y=\"51\" width=\"18\" height=\"7\" rx=\"3.5\"/><rect class=\"a\" x=\"15\" y=\"40\" width=\"4\" height=\"11\" rx=\"2\"/><rect class=\"a\" x=\"77\" y=\"40\" width=\"4\" height=\"11\" rx=\"2\"/><rect class=\"m\" x=\"30\" y=\"74\" width=\"14\" height=\"4\" rx=\"2\"/><rect class=\"m\" x=\"52\" y=\"74\" width=\"14\" height=\"4\" rx=\"2\"/>", "アジャスタブルデクラインベンチ": "<path class=\"f\" d=\"M18 68v16M52 56v28M10 84h52M52 58l20-22\"/><rect class=\"p\" x=\"6\" y=\"52\" width=\"54\" height=\"9\" rx=\"4.5\" transform=\"rotate(-16 33 56)\"/><circle class=\"p\" cx=\"74\" cy=\"30\" r=\"6\"/><circle class=\"p\" cx=\"80\" cy=\"48\" r=\"6\"/><path class=\"f\" d=\"M74 36l6 8\"/>", "バックエクステンションベンチ": "<rect class=\"g\" x=\"8\" y=\"84\" width=\"76\" height=\"4\" rx=\"2\"/><path class=\"f\" d=\"M20 84L58 42M60 84V44\"/><rect class=\"p\" x=\"48\" y=\"24\" width=\"30\" height=\"11\" rx=\"5.5\" transform=\"rotate(-38 63 30)\"/><circle class=\"p\" cx=\"24\" cy=\"64\" r=\"6\"/><circle class=\"m\" cx=\"24\" cy=\"64\" r=\"2\"/><path class=\"s\" d=\"M68 46l10 6\"/><rect class=\"a\" x=\"76\" y=\"49\" width=\"8\" height=\"5\" rx=\"2.5\"/>", "マルチアジャスタブルベンチ": "<path class=\"f\" d=\"M20 66v18M12 84h16M62 84h18M70 84V62M20 74h50M70 62l-10-8\"/><rect class=\"p\" x=\"10\" y=\"58\" width=\"26\" height=\"9\" rx=\"4.5\"/><rect class=\"p\" x=\"36\" y=\"54\" width=\"46\" height=\"9\" rx=\"4.5\" transform=\"rotate(-38 38 60)\"/>", "ダンベル（1〜30kg）": "<g transform=\"rotate(-25 48 48)\"><rect class=\"g\" x=\"36\" y=\"44\" width=\"24\" height=\"8\" rx=\"2\"/><rect class=\"p\" x=\"22\" y=\"29\" width=\"16\" height=\"38\" rx=\"4\"/><rect class=\"m\" x=\"13\" y=\"35\" width=\"8\" height=\"26\" rx=\"3\"/><rect class=\"p\" x=\"58\" y=\"29\" width=\"16\" height=\"38\" rx=\"4\"/><rect class=\"m\" x=\"75\" y=\"35\" width=\"8\" height=\"26\" rx=\"3\"/><rect class=\"a\" x=\"44\" y=\"44\" width=\"8\" height=\"8\"/></g>", "TRX": "<rect class=\"g\" x=\"26\" y=\"8\" width=\"44\" height=\"6\" rx=\"3\"/><circle class=\"a\" cx=\"48\" cy=\"20\" r=\"4\"/><path class=\"f\" d=\"M48 24L30 60M48 24l18 36\"/><path class=\"s\" d=\"M30 60l-8 9M30 60l8 9M66 60l-8 9M66 60l8 9\"/><rect class=\"p\" x=\"19\" y=\"68\" width=\"22\" height=\"7\" rx=\"3.5\"/><rect class=\"p\" x=\"55\" y=\"68\" width=\"22\" height=\"7\" rx=\"3.5\"/>", "チェストプレス": "<rect class=\"g\" x=\"8\" y=\"84\" width=\"80\" height=\"4\" rx=\"2\"/><rect class=\"f2\" x=\"62\" y=\"10\" width=\"24\" height=\"74\" rx=\"3\"/><path class=\"f2\" d=\"M70 12v20M78 12v20\"/><rect class=\"p\" x=\"66\" y=\"32.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"37.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"43.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"48.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"54.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"59.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"65.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"70.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"76.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><circle class=\"a\" cx=\"74\" cy=\"45.2\" r=\"2\"/><path class=\"f\" d=\"M46 84V16h16M33 84V66M24 84h30\"/><rect class=\"p\" x=\"20\" y=\"58\" width=\"24\" height=\"8\" rx=\"4\"/><rect class=\"p\" x=\"40\" y=\"24\" width=\"8\" height=\"34\" rx=\"4\" transform=\"rotate(4 44 41)\"/><path class=\"s\" d=\"M48 17L26 23l-3 22\"/><rect class=\"p\" x=\"12\" y=\"42.5\" width=\"13\" height=\"5\" rx=\"2.5\"/><circle class=\"g\" cx=\"48\" cy=\"17\" r=\"3.5\"/>", "ラットプルダウン": "<rect class=\"g\" x=\"8\" y=\"84\" width=\"80\" height=\"4\" rx=\"2\"/><rect class=\"f2\" x=\"62\" y=\"10\" width=\"24\" height=\"74\" rx=\"3\"/><path class=\"f2\" d=\"M70 12v20M78 12v20\"/><rect class=\"p\" x=\"66\" y=\"32.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"37.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"43.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"48.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"54.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"59.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"65.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"70.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"76.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><circle class=\"a\" cx=\"74\" cy=\"45.2\" r=\"2\"/><path class=\"f\" d=\"M52 84V12H22M27 70v14M16 84h30\"/><path class=\"f2\" d=\"M24 14v10\"/><circle class=\"g\" cx=\"24\" cy=\"12\" r=\"4\"/><path class=\"s\" d=\"M6 30l5-5h26l5 5\"/><rect class=\"p\" x=\"16\" y=\"62\" width=\"22\" height=\"8\" rx=\"4\"/><path class=\"f\" d=\"M38 60l8-6\"/><circle class=\"p\" cx=\"38\" cy=\"54\" r=\"5\"/>", "シーテッドロー": "<rect class=\"g\" x=\"8\" y=\"84\" width=\"80\" height=\"4\" rx=\"2\"/><rect class=\"f2\" x=\"62\" y=\"10\" width=\"24\" height=\"74\" rx=\"3\"/><path class=\"f2\" d=\"M70 12v20M78 12v20\"/><rect class=\"p\" x=\"66\" y=\"32.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"37.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"43.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"48.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"54.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"59.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"65.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"70.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"76.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><circle class=\"a\" cx=\"74\" cy=\"45.2\" r=\"2\"/><path class=\"f\" d=\"M14 66v18M30 66v18M56 84V42\"/><path class=\"f2\" d=\"M56 48H38\"/><rect class=\"p\" x=\"6\" y=\"58\" width=\"30\" height=\"8\" rx=\"4\"/><rect class=\"p\" x=\"44\" y=\"56\" width=\"7\" height=\"22\" rx=\"3.5\" transform=\"rotate(14 47 67)\"/><path class=\"s\" d=\"M38 40v16\"/><circle class=\"g\" cx=\"56\" cy=\"48\" r=\"4\"/>", "ショルダープレス": "<rect class=\"g\" x=\"8\" y=\"84\" width=\"80\" height=\"4\" rx=\"2\"/><rect class=\"f2\" x=\"62\" y=\"10\" width=\"24\" height=\"74\" rx=\"3\"/><path class=\"f2\" d=\"M70 12v20M78 12v20\"/><rect class=\"p\" x=\"66\" y=\"32.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"37.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"43.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"48.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"54.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"59.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"65.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"70.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"76.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><circle class=\"a\" cx=\"74\" cy=\"45.2\" r=\"2\"/><path class=\"f\" d=\"M48 84V32M32 68v16M22 84h32\"/><rect class=\"p\" x=\"20\" y=\"60\" width=\"24\" height=\"8\" rx=\"4\"/><rect class=\"p\" x=\"40\" y=\"28\" width=\"8\" height=\"32\" rx=\"4\"/><path class=\"s\" d=\"M50 34L40 14H24\"/><rect class=\"p\" x=\"12\" y=\"11.5\" width=\"14\" height=\"5\" rx=\"2.5\"/><circle class=\"g\" cx=\"50\" cy=\"34\" r=\"3.5\"/>", "レッグプレス": "<rect class=\"g\" x=\"6\" y=\"84\" width=\"84\" height=\"4\" rx=\"2\"/><path class=\"f\" d=\"M14 80L72 34M72 34v50\"/><circle class=\"m\" cx=\"76\" cy=\"50\" r=\"10\"/><circle class=\"g\" cx=\"76\" cy=\"50\" r=\"3\"/><rect class=\"p\" x=\"58\" y=\"10\" width=\"9\" height=\"36\" rx=\"4.5\" transform=\"rotate(38 62 28)\"/><rect class=\"p\" x=\"12\" y=\"46\" width=\"9\" height=\"28\" rx=\"4.5\" transform=\"rotate(-32 16 60)\"/><rect class=\"p\" x=\"22\" y=\"72\" width=\"20\" height=\"8\" rx=\"4\"/><rect class=\"a\" x=\"40\" y=\"62\" width=\"4\" height=\"10\" rx=\"2\" transform=\"rotate(-38 42 67)\"/>", "レッグエクステンション": "<rect class=\"g\" x=\"8\" y=\"84\" width=\"80\" height=\"4\" rx=\"2\"/><rect class=\"f2\" x=\"62\" y=\"10\" width=\"24\" height=\"74\" rx=\"3\"/><path class=\"f2\" d=\"M70 12v20M78 12v20\"/><rect class=\"p\" x=\"66\" y=\"32.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"37.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"43.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"48.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"54.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"59.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"65.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"70.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"76.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><circle class=\"a\" cx=\"74\" cy=\"45.2\" r=\"2\"/><path class=\"f\" d=\"M28 60v24M16 84h30\"/><rect class=\"p\" x=\"16\" y=\"52\" width=\"28\" height=\"8\" rx=\"4\"/><rect class=\"p\" x=\"12\" y=\"20\" width=\"8\" height=\"34\" rx=\"4\" transform=\"rotate(-8 16 37)\"/><path class=\"s\" d=\"M44 56l4 16\"/><circle class=\"p\" cx=\"49\" cy=\"75\" r=\"5.5\"/><circle class=\"g\" cx=\"44\" cy=\"56\" r=\"3.5\"/>", "ロータリートルソー": "<rect class=\"g\" x=\"8\" y=\"84\" width=\"80\" height=\"4\" rx=\"2\"/><rect class=\"f2\" x=\"62\" y=\"10\" width=\"24\" height=\"74\" rx=\"3\"/><path class=\"f2\" d=\"M70 12v20M78 12v20\"/><rect class=\"p\" x=\"66\" y=\"32.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"37.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"43.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"48.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"54.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"59.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"65.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"70.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"76.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><circle class=\"a\" cx=\"74\" cy=\"45.2\" r=\"2\"/><path class=\"f\" d=\"M34 68v16M22 84h26M34 60V46\"/><rect class=\"p\" x=\"22\" y=\"60\" width=\"24\" height=\"8\" rx=\"4\"/><rect class=\"p\" x=\"24\" y=\"26\" width=\"20\" height=\"22\" rx=\"6\"/><path class=\"s\" d=\"M14 30a20 20 0 0 1 40 0\"/><path class=\"a\" d=\"M54 34l-6-5h9zM14 34l-3-5h9z\"/>", "レッグカール": "<rect class=\"g\" x=\"8\" y=\"84\" width=\"80\" height=\"4\" rx=\"2\"/><rect class=\"f2\" x=\"62\" y=\"10\" width=\"24\" height=\"74\" rx=\"3\"/><path class=\"f2\" d=\"M70 12v20M78 12v20\"/><rect class=\"p\" x=\"66\" y=\"32.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"37.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"p\" x=\"66\" y=\"43.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"48.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"54.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"59.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"65.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"70.5\" width=\"16\" height=\"4.5\" rx=\"1\"/><rect class=\"m\" x=\"66\" y=\"76.0\" width=\"16\" height=\"4.5\" rx=\"1\"/><circle class=\"a\" cx=\"74\" cy=\"45.2\" r=\"2\"/><path class=\"f\" d=\"M28 60v24M16 84h30\"/><rect class=\"p\" x=\"16\" y=\"52\" width=\"28\" height=\"8\" rx=\"4\"/><rect class=\"p\" x=\"12\" y=\"20\" width=\"8\" height=\"34\" rx=\"4\" transform=\"rotate(-8 16 37)\"/><path class=\"s\" d=\"M44 56l8-13\"/><circle class=\"p\" cx=\"53\" cy=\"40\" r=\"5.5\"/><rect class=\"p\" x=\"28\" y=\"42\" width=\"14\" height=\"5\" rx=\"2.5\"/><circle class=\"g\" cx=\"44\" cy=\"56\" r=\"3.5\"/>", "トレッドミル": "<path class=\"f\" d=\"M72 66L82 22\"/><path class=\"s\" d=\"M79 36H56\"/><path class=\"m\" d=\"M56 64h26a4 4 0 0 1 4 4v10H52z\"/><rect class=\"d\" x=\"6\" y=\"68\" width=\"76\" height=\"11\" rx=\"5.5\"/><rect class=\"p\" x=\"10\" y=\"68\" width=\"48\" height=\"3\" rx=\"1.5\"/><circle class=\"g\" cx=\"11.5\" cy=\"73.5\" r=\"3.5\"/><circle class=\"g\" cx=\"76.5\" cy=\"73.5\" r=\"3.5\"/><rect class=\"g\" x=\"8\" y=\"81\" width=\"10\" height=\"5\" rx=\"2\"/><rect class=\"g\" x=\"70\" y=\"81\" width=\"12\" height=\"5\" rx=\"2\"/><rect class=\"p\" x=\"70\" y=\"12\" width=\"22\" height=\"12\" rx=\"3\" transform=\"rotate(-12 81 18)\"/><rect class=\"a\" x=\"74\" y=\"15\" width=\"10\" height=\"5\" rx=\"1\" transform=\"rotate(-12 81 18)\"/>", "アップライトバイク": "<rect class=\"g\" x=\"12\" y=\"84\" width=\"70\" height=\"4\" rx=\"2\"/><path class=\"f\" d=\"M30 50L24 22M56 62l6-28M28 78v6M62 78v6\"/><path class=\"m\" d=\"M16 60a18 18 0 0 1 18-16h20a12 12 0 0 1 12 12v8a14 14 0 0 1-14 14H30a14 14 0 0 1-14-14z\"/><circle class=\"d\" cx=\"34\" cy=\"62\" r=\"10\"/><path class=\"s\" d=\"M46 64l8 10\"/><rect class=\"p\" x=\"48\" y=\"73\" width=\"14\" height=\"4\" rx=\"2\"/><circle class=\"a\" cx=\"46\" cy=\"64\" r=\"3.5\"/><rect class=\"p\" x=\"50\" y=\"27\" width=\"24\" height=\"8\" rx=\"4\"/><path class=\"s\" d=\"M16 22h14\"/><rect class=\"p\" x=\"18\" y=\"8\" width=\"14\" height=\"10\" rx=\"2.5\"/><rect class=\"a\" x=\"21\" y=\"10.5\" width=\"8\" height=\"4\" rx=\"1\"/>", "インドアサイクル": "<rect class=\"g\" x=\"8\" y=\"84\" width=\"80\" height=\"4\" rx=\"2\"/><circle class=\"m\" cx=\"28\" cy=\"58\" r=\"21\"/><circle class=\"d\" cx=\"28\" cy=\"58\" r=\"14\"/><circle class=\"g\" cx=\"28\" cy=\"58\" r=\"3\"/><path class=\"f\" d=\"M28 58l30 4M58 62l8-30M58 62l18 22M28 58L18 84M32 40l-4-20\"/><path class=\"s\" d=\"M58 62l-7 10M16 20h20\"/><rect class=\"p\" x=\"44\" y=\"71\" width=\"13\" height=\"4\" rx=\"2\"/><circle class=\"a\" cx=\"58\" cy=\"62\" r=\"4\"/><rect class=\"p\" x=\"56\" y=\"25\" width=\"24\" height=\"8\" rx=\"4\"/>", "アセントトレーナー（クロストレーナー）": "<rect class=\"g\" x=\"6\" y=\"84\" width=\"84\" height=\"4\" rx=\"2\"/><path class=\"f\" d=\"M72 84l4-54M24 62v22\"/><circle class=\"m\" cx=\"24\" cy=\"62\" r=\"16\"/><circle class=\"d\" cx=\"24\" cy=\"62\" r=\"6\"/><path class=\"s\" d=\"M24 62l38 10M58 72l6-46\"/><rect class=\"p\" x=\"42\" y=\"67\" width=\"26\" height=\"6\" rx=\"3\" transform=\"rotate(8 55 70)\"/><rect class=\"p\" x=\"60\" y=\"16\" width=\"7\" height=\"14\" rx=\"3.5\"/><rect class=\"p\" x=\"68\" y=\"18\" width=\"20\" height=\"12\" rx=\"3\" transform=\"rotate(-8 78 24)\"/><rect class=\"a\" x=\"72\" y=\"21\" width=\"10\" height=\"5\" rx=\"1\" transform=\"rotate(-8 78 24)\"/><circle class=\"a\" cx=\"24\" cy=\"62\" r=\"2.5\"/>"};
+const KIND_JA={barbell:'バーベル',dumbbell:'ダンベル',machine:'マシン',cardio:'有酸素',body:'自重'};
+function kindOf(ex){if(isCardio(ex))return'cardio';if(BB.has(ex)||/バーベル|スミス/.test(ex))return'barbell';if(/ダンベル|サイドレイズ|ゴブレット/.test(ex))return'dumbbell';
+  const e=equipFor(ex);if(e==='バーティカルニーレイズチン'||e==='TRX'||/懸垂|ディップス|アブローラー|TRX/.test(ex))return'body';return'machine'}
+const eqOf=ex=>{let e=equipFor(ex);if(!e&&kindOf(ex)==='dumbbell')e='ダンベル（1〜30kg）';return e};
+const eqArt=(e,size=52)=>EQ_ART[e]?`<svg class="eq-art" width="${size}" height="${size}" viewBox="0 0 96 96" aria-hidden="true">${EQ_ART[e]}</svg>`:'';
+const kindIcon=ex=>{const k=kindOf(ex),e=eqOf(ex);return `<div class="kind">${eqArt(e)||`<svg class="i" width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">${KIND[k]}</svg>`}</div>`};
+const eqLabel=ex=>{const e=eqOf(ex);return e&&e!==ex?e:KIND_JA[kindOf(ex)]};
+const EN_EX={'ベンチプレス':'Bench Press','インクライン・ダンベルプレス':'Incline Dumbbell Press','チェストプレス':'Chest Press','ペックフライ':'Pec Fly','ディップス':'Dips','デッドリフト':'Deadlift','ラットプルダウン':'Lat Pulldown','シーテッドロー':'Seated Row','ベントオーバーロウ':'Bent-Over Row','懸垂':'Pull-Up','スクワット':'Squat','レッグプレス':'Leg Press','ルーマニアン・デッドリフト':'Romanian Deadlift','レッグエクステンション':'Leg Extension','レッグカール':'Leg Curl','カーフレイズ':'Calf Raise','ショルダープレス':'Shoulder Press','サイドレイズ':'Lateral Raise','フェイスプル':'Face Pull','バーベルカール':'Barbell Curl','ダンベルカール':'Dumbbell Curl','トライセプス・プッシュダウン':'Triceps Pushdown','アブローラー':'Ab Wheel','ケーブルクランチ':'Cable Crunch','ケーブルフライ':'Cable Fly','ケーブル・サイドレイズ':'Cable Lateral Raise','スミス・ベンチプレス':'Smith Bench Press','スミス・スクワット':'Smith Squat','スミス・ショルダープレス':'Smith Shoulder Press','ハンギング・レッグレイズ':'Hanging Leg Raise','デクライン・クランチ':'Decline Crunch','デクライン・ベンチプレス':'Decline Bench Press','バックエクステンション':'Back Extension','ダンベルプレス':'Dumbbell Press','ダンベル・ショルダープレス':'Dumbbell Shoulder Press','ダンベルロウ':'Dumbbell Row','ゴブレットスクワット':'Goblet Squat','TRXロウ':'TRX Row','TRXプッシュアップ':'TRX Push-Up','ロータリートルソー':'Rotary Torso','トレッドミル':'Treadmill','アップライトバイク':'Upright Bike','インドアサイクル':'Indoor Cycle','アセントトレーナー（クロストレーナー）':'Cross Trainer','エアロバイク':'Exercise Bike','ランニング':'Running','ウォーキング':'Walking','ローイング':'Rowing'};
+const EN_MENU={'全身 A（初心者）':'Full Body A','全身 B（初心者）':'Full Body B','プッシュ（胸・肩・三頭）':'Push Day','プル（背中・二頭）':'Pull Day','レッグ（脚・お尻）':'Leg Day','マシン中心・全身（長堀橋向け）':'Machine Full Body','フリー':'Free Session'};
+const EN_PART={'胸':'Chest','背中':'Back','脚':'Legs','肩':'Shoulders','腕':'Arms','体幹':'Core'};
+/* 表示だけ英語にする。保存するデータの名前は日本語のまま */
+const big=(tag,cls,ja,en)=>en?`<${tag} class="${cls} nk" lang="en" title="${esc(ja)}">${esc(en)}</${tag}>`:`<${tag} class="${cls}">${esc(ja)}</${tag}>`;
+/* ロゴ（B案 タリーマーク）。4本の線＋斜線＝5セット完了 */
+const logoMark=(size,fg='var(--text)',ac='var(--accent)')=>`<svg width="${size}" height="${size}" viewBox="0 0 120 120" aria-hidden="true" style="display:block;flex:none"><g transform="skewX(-12) translate(14 0)" fill="${fg}"><rect x="20" y="24" width="13" height="72" rx="3"/><rect x="41" y="24" width="13" height="72" rx="3"/><rect x="62" y="24" width="13" height="72" rx="3"/><rect x="83" y="24" width="13" height="72" rx="3"/></g><path d="M8 88L112 34" stroke="${ac}" stroke-width="13" stroke-linecap="round" fill="none"/></svg>`;
+const logo=(size=26,fg,ac)=>`<span class="logo" role="img" aria-label="SETNOTE" style="font-size:${size}px${fg?`;color:${fg}`:''}">${logoMark(Math.round(size*1.05),fg,ac)}<span aria-hidden="true">SETNOTE</span></span>`;
+const titleRow=t=>`<div class="title-row"><h1 class="t-title nk" lang="en">${t}</h1>${logoMark(40)}</div>`;
+const menuList=()=>(S.config.routines.length?S.config.routines:PRESETS).filter(r=>r.items.some(i=>i.ex));
+function todayMenu(){const L=menuList();if(!L.length)return null;const last=done()[0],i=last?L.findIndex(r=>r.name===last.name):-1;return L[(i+1)%L.length]}
+const sameDay=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+function topW(ex,skip){const p=lastFor(ex,skip);if(!p||p.cardio)return 0;return Math.max(0,...okSets(p).map(s=>+s.w||0))}
+function homeHTML(){
+  const now=new Date(),a=active(),menu=a?null:todayMenu();
+  const mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-((now.getDay()+6)%7));
+  const ds=done().map(s=>new Date(s.start));
+  const week=[...Array(7)].map((_,i)=>{const d=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i),did=ds.some(x=>sameDay(x,d)),today=sameDay(d,now);
+    return `<div class="${did?'did':'off'}${today?' today':''}" aria-label="${d.getMonth()+1}月${d.getDate()}日${did?' 実施':''}"><div class="dow">${DOW_EN[d.getDay()]}</div><div class="day">${d.getDate()}</div><div class="dot"></div></div>`}).join('');
+  const items=a?a.items:menu?menu.items.filter(i=>i.ex):[];
+  const parts=[...new Set(items.map(i=>partOf(i.ex)).filter(Boolean))];
+  const title=a?'ワークアウト中':!items.length?'今日のメニューを決めよう':parts.length===0?`今日は${menu.name}`:parts.length<=2?`今日は${parts.join('と')}`:'今日は全身';
+  const titleEn=a?'In Session':!items.length?'Plan Your Day':parts.length===0?EN_MENU[menu.name]:parts.length<=2?parts.map(x=>EN_PART[x]).join(' & '):'Full Body Day';
+  let card;
+  if(a){const tot=a.items.reduce((t,it)=>t+it.sets.length,0),ok=a.items.reduce((t,it)=>t+okSets(it).length,0);
+    card=`<div class="menu-card"><div class="mc-top"><div class="eyebrow">In Progress</div>${logoMark(44,'var(--on-accent)','var(--text)')}</div>${big('div','t-menu',a.name,EN_MENU[a.name])}<div class="meta2">${a.items.length} workouts ・ ${ok} / ${tot} sets ・ <span id="elapsed">${mmss((Date.now()-a.start)/1000)}</span></div><a class="btn-primary dark" href="#workout">${ICON.play}<span>RESUME WORKOUT</span></a></div>`}
+  else if(menu){const st=menu.items.filter(i=>i.ex&&!isCardio(i.ex)),cd=menu.items.filter(i=>i.ex&&isCardio(i.ex));
+    const sets=st.reduce((t,i)=>t+(+i.sets||0),0),min=Math.max(5,Math.round((sets*((+menu.rest||+S.config.rest||90)+45)/60+cd.reduce((t,i)=>t+(parseFloat(i.reps)||0),0))/5)*5);
+    card=`<div class="menu-card"><div class="mc-top"><div class="eyebrow">Today's Menu</div>${logoMark(44,'var(--on-accent)','var(--text)')}</div>${big('div','t-menu',menu.name,EN_MENU[menu.name])}<div class="meta2">${items.length} workouts${sets?` ・ ${sets} sets`:''} ・ ${min} min</div><button class="btn-primary dark" data-act="start" data-rid="${esc(menu.id)}">${ICON.play}<span>START WORKOUT</span></button></div>`}
+  else card=`<div class="menu-card"><div class="mc-top"><div class="eyebrow">Today's Menu</div>${logoMark(44,'var(--on-accent)','var(--text)')}</div><div class="t-menu">まだありません</div><div class="meta2">種目を選んでメニューを作りましょう</div><a class="btn-primary dark" href="#exercises"><span>CHOOSE WORKOUT</span></a></div>`;
+  const rows=items.map((it,k)=>{let r;
+    if(a){const ok=okSets(it).length,w=it.cardio?0:Math.max(0,...okSets(it).map(s=>+s.w||0));r=it.cardio?(cTxt(it)||`${it.sets.length}区間`):`${ok} / ${it.sets.length} sets${w?` ・ ${fmtW(w)}`:''}`}
+    else if(isCardio(it.ex))r=esc(it.reps);
+    else{const w=topW(it.ex);r=`${esc(it.sets)} × ${esc(it.reps)}${w?` ・ ${fmtW(w)}`:''}`}
+    return `<div class="list-row">${kindIcon(it.ex)}<div class="nm">${EN_EX[it.ex]?`<span class="up" lang="en">${EN_EX[it.ex]}</span><small>${esc(it.ex)}${eqLabel(it.ex)!==KIND_JA[kindOf(it.ex)]?' ・ '+esc(eqLabel(it.ex)):''}</small>`:`${esc(it.ex)}<small>${esc(eqLabel(it.ex))}</small>`}</div><div class="rt2">${r}</div></div>`}).join('');
+  return `<div class="home-head" style="align-items:center">${logo(28)}<a class="icon-btn" href="#settings" aria-label="設定">${ICON.settings}</a></div>
+  <div style="margin-top:20px;display:flex;flex-direction:column;gap:4px"><div class="eyebrow" style="color:var(--text-muted)">${DOW_EN[now.getDay()]} ・ ${MON_EN[now.getMonth()]} ${now.getDate()}</div>${big('h1','t-title',title,titleEn)}</div>
+  <div class="week" role="group" aria-label="今週の実施状況">${week}</div>
+  ${card}
+  <div class="sec-head" style="margin-top:24px"><h2 class="t-section">WORKOUT<span class="ja">種目</span></h2>${a?'':'<a href="#exercises" style="letter-spacing:.1em;font-weight:700;font-size:11px">EDIT</a>'}</div>
+  <div class="home-list">${rows||'<div class="empty-s">種目がありません</div>'}</div>
+  ${a?'':'<div class="sec-head" style="margin-top:8px"><button class="link" data-act="start"><b style="letter-spacing:.1em;font-size:11px;color:var(--text);margin-right:8px">QUICK START</b>メニューなしで始める</button></div>'}`;
+}
+function settingsHTML(){
+  return `<div class="home-head"><a class="icon-btn" href="#home" aria-label="戻る">${ICON.back}</a></div>
+  <h1 class="t-title nk" lang="en" style="margin-top:16px">Settings</h1><p class="t-sub" style="margin:4px 0 20px"><span id="sync" class="${syncState.on?'on':''}">${esc(syncState.t)}</span></p>
+  ${setupHTML()}${routinesHTML()}<div class="foot-logo">${logo(34)}<div>TRACK EVERY SET</div></div>`;
+}
+/* ワークアウト記録（DESIGN 5.2）。データの形は従来どおり（セットごとに w/r/ok、有酸素は m/d/lv/ok） */
+let wEx=-1;
+const has=v=>v!==''&&v!=null;
+const W_ICON={minus:'<svg class="i" style="stroke-width:2.5" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg>',plus:'<svg class="i" style="stroke-width:2.5" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg>',
+  check:'<svg class="i" style="stroke-width:2.5" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',arrow:'<svg class="i" style="stroke-width:2.5" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'};
+const stepOf=ex=>kindOf(ex)==='dumbbell'?2:2.5;
+function draft(a,it,j){
+  /* 初期値の決め方: そのセットに入れた値 → 前回の同じセット番号の回数 → 直前のセットの値 → 目標・前回の値 */
+  const s=it.sets[j],b=j?draft(a,it,j-1):null,prev=lastFor(it.ex,a.id),same=prev&&prev.sets[j]&&prev.sets[j].ok?prev.sets[j]:null,pv=prev&&(prev.sets[j]||prev.sets[prev.sets.length-1]);
+  const pick=(f,fb)=>has(s[f])?s[f]:(f==='r'&&same&&has(same.r))?same.r:b&&has(b[f])?b[f]:fb;
+  if(isC(it))return{m:+pick('m',parseFloat(it.target)||(pv&&+pv.m)||10)||0,d:+pick('d',(pv&&+pv.d)||0)||0,lv:has(s.lv)?s.lv:(b&&b.lv)||(pv&&pv.lv)||''};
+  const tr=parseInt((it.target||'').split('×')[1])||0;
+  return{w:+pick('w',(pv&&+pv.w)||0)||0,r:+pick('r',tr||(pv&&+pv.r)||10)||0};
+}
+const rowTxt=(it,v)=>isC(it)?`${v.m} 分${+v.d?` ・ ${v.d} km`:''}${v.lv?` ・ ${esc(v.lv)}`:''}`:`${fmtW(v.w)} × ${v.r}`;
+function numCard(label,ja,val,unit,i,j,f,dec){
+  const t=String(val);
+  return `<div class="num-card"><div class="t-label"><span class="eyebrow">${label}</span><span class="ja">${ja}</span></div>
+  <div class="num-val"><input class="big-in${(f==='w'?t.length>4:false)?' xs':(f==='w'?t.length>2:t.length>4)?' sm':''}" inputmode="${dec?'decimal':'numeric'}" aria-label="${ja}" data-i="${i}" data-j="${j}" data-f="${f}" value="${esc(t)}">${f==='w'?`<button class="unit-btn" data-act="unit" aria-label="単位を切り替え（今は ${unit}）">${unit}</button>`:`<span>${unit}</span>`}</div>
+  <div class="pm"><button data-act="wstep" data-f="${f}" data-d="-1" aria-label="${ja}を減らす">${W_ICON.minus}</button><button data-act="wstep" data-f="${f}" data-d="1" aria-label="${ja}を増やす">${W_ICON.plus}</button></div></div>`;
+}
+function todayHTML(){
+  const a=active(),n=a.items.length;
+  const head=(sub)=>`<div class="w-head"><a class="icon-btn" href="#home" aria-label="ホームに戻る">${ICON.back}</a><div class="mid"><div class="nm${EN_MENU[a.name]?' up':''}">${esc(EN_MENU[a.name]||a.name)}</div><div class="eyebrow">${sub}</div></div><button class="pill" data-act="finish">FINISH</button></div>`;
+  const more=(i)=>`<details class="w-more"><summary>その他の操作</summary>
+    ${i>=0?`<div class="row"><button class="btn sm" data-act="addset" data-i="${i}">${isC(a.items[i])?'＋ 区間':'＋ セット'}</button>${a.items[i].sets.length>1?`<button class="btn sm" data-act="rmset" data-i="${i}">最後の${isC(a.items[i])?'区間':'セット'}を消す</button>`:''}<button class="btn sm" data-act="rmex" data-i="${i}">この種目を外す</button></div>`:''}
+    <label for="addEx">種目を追加（一覧にない名前もそのまま登録できます）</label><div class="row" style="flex-wrap:nowrap"><input id="addEx" list="exlist" placeholder="例: ラットプルダウン"><button class="btn dark" data-act="addex">追加</button></div>
+    <div class="row" style="margin-top:16px"><button class="btn sm ghost" data-act="discard">記録を破棄</button></div></details>`;
+  if(!n)return head('NO WORKOUT')+`<div class="empty-s">まだ種目がありません。下から追加してください。</div><details class="w-more" open><summary>種目を追加</summary><div class="row" style="flex-wrap:nowrap"><input id="addEx" list="exlist" placeholder="例: ラットプルダウン" aria-label="種目を追加"><button class="btn dark" data-act="addex">追加</button></div><div class="row" style="margin-top:16px"><button class="btn sm ghost" data-act="discard">記録を破棄</button></div></details>`;
+  if(wEx<0||wEx>=n){wEx=a.items.findIndex(it=>it.sets.some(s=>!s.ok));if(wEx<0)wEx=n-1}
+  const i=wEx,it=a.items[i],C=isC(it),j=it.sets.findIndex(s=>!s.ok),allDone=j<0,last=i===n-1;
+  const prev=lastFor(it.ex,a.id),su=setupText(it.ex),cur=allDone?null:draft(a,it,j);
+  const segs=a.items.map((x,k)=>{const st=k===i?'cur':x.sets.every(s=>s.ok)?'done':'';
+    return `<button class="${st}" data-act="wgo" data-i="${k}" aria-label="${esc(x.ex)}${st==='done'?'（完了）':st==='cur'?'（表示中）':''}" title="${esc(x.ex)}"><i>${eqArt(eqOf(x.ex),30)||`<svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">${KIND[kindOf(x.ex)]}</svg>`}</i><span></span></button>`}).join('');
+  const prevTxt=prev?(C?'前回 '+esc(cTxt(prev)):`前回 ${fmtW(Math.max(...okSets(prev).map(s=>+s.w||0)))} × ${okSets(prev).map(s=>s.r).join('・')}`):'前回の記録なし';
+  const e=eqOf(it.ex),art=eqArt(e,72)||`<svg class="i" width="36" height="36" viewBox="0 0 24 24" aria-hidden="true">${KIND[kindOf(it.ex)]}</svg>`;
+  const cards=allDone?'':C?numCard('TIME','時間',cur.m,'分',i,j,'m',1)+numCard('DISTANCE','距離',cur.d,'km',i,j,'d',1):numCard('WEIGHT','重量',toU(cur.w),unit(),i,j,'w',1)+numCard('REPS','回数',cur.r,'回',i,j,'r',0);
+  const rows=it.sets.map((s,k)=>{
+    if(s.ok)return `<button class="set-row done" data-act="wundo" data-j="${k}" aria-label="セット ${k+1} 完了 ${rowTxt(it,s)}。押すと記録し直せます"><span class="no">${k+1}</span><span class="tx">${rowTxt(it,s)}</span><span class="ck" role="img" aria-label="完了">${W_ICON.check}</span></button>`;
+    if(k===j)return `<div class="set-row cur"><span class="no">${k+1}</span><span class="tx" id="curTxt">${rowTxt(it,cur)}</span><span class="st">記録中</span></div>`;
+    return `<div class="set-row"><span class="no">${k+1}</span><span class="tx">${rowTxt(it,draft(a,it,k))}</span></div>`}).join('');
+  const resting=REST_ON&&restEnd>Date.now();
+  const restBox=resting?`<div class="rest-box"><div class="lb">REST</div><div class="tm" id="restT">${mmss((restEnd-Date.now())/1000)}</div><button data-act="reststop">スキップ</button></div>`
+    :`<div class="rest-idle">${last?'最後の種目です':'次の種目：'+esc(a.items[i+1].ex)}</div>`;
+  const mainBtn=!allDone?`<button class="btn-primary lg" data-act="wdone">${W_ICON.check}<span>${C?'区間':'セット'} ${j+1} を完了</span></button>`
+    :!last?`<button class="btn-primary lg light" data-act="wnext"><span>次の種目へ</span>${W_ICON.arrow}</button>`
+    :`<button class="btn-primary lg light" data-act="finish">ワークアウトを終了</button>`;
+  return head(`WORKOUT ${i+1} / ${n}`)+`
+  <div class="segs" role="group" aria-label="種目の進み具合">${segs}</div>
+  <div class="w-title"><div>${big('h1','',it.ex,EN_EX[it.ex])}<div class="t-sub">${EN_EX[it.ex]?esc(it.ex)+' ・ ':''}${prevTxt}</div></div><div class="w-art">${art}</div></div>
+  <button class="chip${su?'':' empty'}" data-act="setup" data-ex="${esc(setupKey(it.ex))}">${su?`<b>設定</b>${esc(su)}`:'＋ マシンの設定をメモ'}</button>
+  ${cards?`<div class="num-grid">${cards}</div>`:''}
+  ${C&&!allDone?`<label for="lvIn">強度（Lv・傾斜など）</label><input id="lvIn" data-i="${i}" data-j="${j}" data-f="lv" value="${esc(cur.lv)}" placeholder="例: 傾斜3">`:''}
+  ${!C&&BB.has(it.ex)&&!allDone?plateSVG(cur.w):''}
+  <div class="set-list">${rows}</div>
+  ${more(i)}
+  <div class="w-dock"><div class="in">${restBox}${mainBtn}</div></div>`;
+}
+
+/* 履歴 */
+function historyHTML(){
+  const ds=done(),now=new Date(),goal=Math.min(7,Math.max(1,Math.round(+S.config.goal)||4));
+  const mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-((now.getDay()+6)%7)).getTime(),WK=7*864e5;
+  const wk=ds.filter(s=>s.start>=mon),nW=wk.length,cMinW=wk.reduce((t,s)=>t+sMin(s),0);
+  const weekCard=`<div class="card-s"><div class="p-top"><div class="t-label"><span class="eyebrow">This Week</span><span class="ja">今週のワークアウト</span></div><div class="t-min2">目標 週${goal}回</div></div>
+  <div class="p-big"><div class="t-num">${nW}</div><div class="u">/ ${goal} 回</div></div>
+  <div class="p-segs" role="img" aria-label="${goal}回中${Math.min(nW,goal)}回達成" style="grid-template-columns:repeat(${goal},minmax(0,1fr))">${[...Array(goal)].map((_,k)=>`<div class="${k<nW?'on':''}"></div>`).join('')}</div>
+  ${cMinW?`<div class="t-sub" style="margin-top:12px">有酸素 今週 ${+cMinW.toFixed(1)}分</div>`:''}</div>`;
+  const weeks=[...Array(6)].map((_,k)=>{const st=mon-(5-k)*WK,d=new Date(st);return{cur:k===5,lb:k===5?'今週':`${d.getMonth()+1}/${d.getDate()}`,ja:k===5?'今週':`${d.getMonth()+1}月${d.getDate()}日週`,v:ds.filter(s=>s.start>=st&&s.start<st+WK).reduce((t,s)=>t+vol(s),0)/1000*(isLb()?LB:1)}});
+  const mx=Math.max(...weeks.map(w=>w.v));
+  const volCard=`<div class="card-s" style="margin-top:12px"><div class="p-top"><div class="t-label"><span class="eyebrow">Weekly Volume</span><span class="ja">週ごとの総負荷量</span></div><div class="t-min2">単位 ${isLb()?'1,000 lb':'t'}</div></div>
+  <div class="p-bars" role="img" aria-label="直近6週間の総負荷量。${weeks.map(w=>`${w.ja} ${w.v.toFixed(1)}${isLb()?'千ポンド':'トン'}`).join('、')}">${weeks.map(w=>`<div class="${w.cur?'cur':''}"><div class="v">${w.v.toFixed(1)}</div><div class="b${w.v?'':' z'}" style="height:${w.v?Math.max(6,Math.round(w.v/mx*120)):4}px"></div><div class="d">${w.lb}</div></div>`).join('')}</div></div>`;
+  const pb={};ds.forEach(s=>s.items.forEach(it=>{if(isC(it))return;okSets(it).forEach(x=>{const v=e1(+x.w||0,+x.r);if(+x.w>0&&(!pb[it.ex]||v>pb[it.ex].v))pb[it.ex]={v,w:x.w,r:x.r,t:s.start}})}));
+  const pbs=Object.entries(pb).sort((a,b)=>b[1].t-a[1].t);
+  const pbHTML=pbs.length?pbs.map(([ex,b])=>{const d=new Date(b.t),en=EN_EX[ex];return `<div class="pb-row"><div class="tx"><div class="n1${en?' up':''}">${esc(en||ex)}</div><div class="n2">${en?esc(ex)+' ・ ':''}${d.getMonth()+1}月${d.getDate()}日</div></div><div class="val">${fmtW(b.w)} × ${esc(b.r)}</div></div>`}).join(''):'<div class="empty-s">ワークアウトを終了すると、種目ごとの自己ベストがここに並びます</div>';
+  const cnt={};ds.forEach(s=>s.items.forEach(it=>{if(okSets(it).length)cnt[it.ex]=(cnt[it.ex]||0)+1}));
+  const exs=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);if(!cnt[histEx])histEx=exs[0]||'';
+  let extra='';
+  if(ds.length){const sr=series(histEx);let best=0,bw='';
+    if(sr.kind==='str')ds.forEach(s=>s.items.forEach(it=>{if(it.ex===histEx&&!isC(it))okSets(it).forEach(x=>{const v=e1(+x.w,+x.r);if(v>best){best=v;bw=`${fmtW(x.w)} × ${x.r}`}})}));
+    const bestTxt=sr.kind==='str'?(best?`ベスト ${toU(best)} ${unit()}（${esc(bw)}から推定）`:''):sr.pts.length?`最長 ${+Math.max(...sr.pts.map(p=>p.v)).toFixed(2)}${sr.unit} ・ 合計 ${+sr.pts.reduce((a,p)=>a+p.v,0).toFixed(1)}${sr.unit}`:'';
+    const list=ds.map(s=>`<details class="h-item"><summary><div class="tx"><div class="n1${EN_MENU[s.name]?' up':''}">${esc(EN_MENU[s.name]||s.name)}</div><div class="n2">${fmtD(s.start)} ・ ${s.items.length}種目 ・ ${volTxt(vol(s))}${sMin(s)?` ・ 有酸素${+sMin(s).toFixed(1)}分`:''} ・ ${Math.round((s.end-s.start)/6e4)}分</div></div><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+    <ol class="ex">${s.items.map(it=>`<li>${esc(it.ex)} <span>${esc(setTxt(it))||'記録なし'}</span></li>`).join('')}</ol>
+    <div class="row" style="margin:10px 0 14px"><button class="btn sm" data-act="delsess" data-id="${s.id}">この記録を削除</button></div></details>`).join('');
+    extra=`<h2 class="t-section" style="margin-top:28px">TREND<span class="ja">種目ごとの推移</span></h2>
+    <div class="card-s" style="margin-top:8px"><select id="histEx" aria-label="種目">${exs.map(e=>`<option value="${esc(e)}"${e===histEx?' selected':''}>${esc(EN_EX[e]?EN_EX[e].toUpperCase()+'  '+e:e)}</option>`).join('')}</select>
+    <div class="t-label" style="margin-top:14px;color:var(--text-muted)">${sr.title}</div><div class="t-sub">${bestTxt}</div>
+    <div class="fig"><svg id="chart"></svg></div><div class="t-sub">${sr.note}</div></div>
+    <h2 class="t-section" style="margin-top:28px">HISTORY<span class="ja">これまでの記録</span></h2><div style="margin-top:8px">${list}</div>`}
+  return `${titleRow('Progress')}<div style="height:16px"></div>${weekCard}${volCard}
+  <h2 class="t-section" style="margin-top:24px">PERSONAL BESTS<span class="ja">自己ベスト</span></h2><div style="margin-top:8px">${pbHTML}</div>${extra}`;
+}
+function series(ex){
+  const ss=done().slice().reverse(),its=s=>s.items.filter(it=>it.ex===ex);
+  const cardio=ss.some(s=>its(s).some(isC));
+  if(!cardio)return{kind:'str',title:'推定1RMの推移',unit:unit(),note:'推定1RM = 重量 ×（1 + 回数 ÷ 30）。各回の最高値を結んでいます。',
+    pts:ss.map(s=>{let v=0;its(s).forEach(it=>okSets(it).forEach(k=>{v=Math.max(v,e1(+k.w,+k.r||0))}));return{t:s.start,v:isLb()?v*LB:v}}).filter(p=>p.v>0)};
+  const useKm=ss.some(s=>its(s).some(it=>cKm(it)>0)),f=useKm?cKm:cMin;
+  return{kind:useKm?'km':'min',title:useKm?'距離の推移':'時間の推移',unit:useKm?'km':'分',note:useKm?'各回の合計距離（km）です。':'各回の合計時間（分）です。距離も入れると距離のグラフになります。',
+    pts:ss.map(s=>({t:s.start,v:its(s).reduce((a,it)=>a+f(it),0)})).filter(p=>p.v>0)};
+}
+function drawChart(){
+  const s=$('#chart');if(!s)return;const W=s.clientWidth,H=s.clientHeight;if(!W)return;
+  const pts=series(histEx).pts;
+  if(pts.length<2){s.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="currentColor" opacity=".6" font-size="14">2回以上記録するとグラフになります</text>`;return}
+  const L=44,R=18,T=18,B=28,lo=Math.min(...pts.map(p=>p.v)),hi=Math.max(...pts.map(p=>p.v)),pad=Math.max((hi-lo)*.15,hi*.04,.2),y0=lo-pad,y1=hi+pad;
+  const X=i=>L+i*(W-L-R)/(pts.length-1),Y=v=>T+(1-(v-y0)/(y1-y0))*(H-T-B);
+  const ticks=[y0+pad,(lo+hi)/2,hi].filter((v,i,a)=>i===0||Math.abs(v-a[i-1])>hi*.02);
+  s.innerHTML=ticks.map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="currentColor" opacity=".12"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end" font-size="12" fill="currentColor" opacity=".6">${hi<20?+v.toFixed(1):Math.round(v)}</text>`).join('')+
+  `<path d="${pts.map((p,i)=>(i?'L':'M')+X(i)+' '+Y(p.v)).join('')}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>`+
+  pts.map((p,i)=>`<circle cx="${X(i)}" cy="${Y(p.v)}" r="${W<520?3:4}" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>`).join('')+
+  `<text x="${L}" y="${H-8}" font-size="12" fill="currentColor" opacity=".6">${fmtD(pts[0].t)}</text><text x="${W-R}" y="${H-8}" text-anchor="end" font-size="12" fill="currentColor" opacity=".6">${fmtD(pts[pts.length-1].t)}</text>`;
+}
+const chartRO=new ResizeObserver(drawChart);
+
+/* セットアップ */
+function setupHTML(){
+  const ent=Object.entries(S.config.setups).filter(([k])=>!isEquip(k)).sort((a,b)=>(b[1].t||0)-(a[1].t||0));
+  const cards=ent.map(([ex,s])=>`<div class="card"><div class="ch"><h2>${esc(ex)}</h2><button class="btn sm" data-act="setup" data-ex="${esc(ex)}">編集</button></div><dl class="su">${[['シート',s.seat],['背もたれ',s.back],['ピン・位置',s.pin],['グリップ',s.grip],['メモ',s.note]].filter(r=>r[1]).map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl></div>`).join('');
+  const g=gym();
+  const gymHTML=CATS.map(c=>{const its=g.items.map((it,k)=>({...it,k})).filter(it=>it.cat===c);if(!its.length)return'';
+    return `<h4 class="gcat">${c} <span class="meta">${its.length}種</span></h4><div class="eq">${its.map(it=>{const st=S.config.setups[it.n];
+      return `<div class="eqr"><div class="kind2">${eqArt(it.n,40)}</div><div style="flex:1"><div class="hl">${esc(it.n)}${it.count>1?` <span class="meta">${it.count}台</span>`:''}</div>${it.ex.length&&!(it.ex.length===1&&it.ex[0]===it.n)?`<div class="meta">${it.ex.map(esc).join('・')}</div>`:''}${st?`<div class="meta" style="color:var(--text)">設定: ${esc(setupText(it.n))}</div>`:''}</div>
+      <div class="row" style="flex-wrap:nowrap"><button class="btn sm" data-act="setup" data-ex="${esc(it.n)}">${st?'編集':'メモ'}</button><button class="ico" data-act="gymrm" data-k="${it.k}" aria-label="${esc(it.n)}を外す">×</button></div></div>`}).join('')}</div>`}).join('');
+  return `<h2 class="t-section">MY GYM<span class="ja">マイジムと器具の設定</span></h2><p class="lead" style="margin-top:6px">マシンのシート高さやピン位置、グリップ幅を残しておくと、記録中の画面にそのまま表示されます。</p>
+  <div class="card"><div class="ch" style="flex-wrap:wrap"><div><div class="meta">マイジム</div><h2>${esc(g.name)}</h2><div class="meta">登録器具 ${g.items.length}種${g.src?` ・ <a href="${esc(g.src)}" style="color:var(--text)">公式の設備一覧</a>（${esc(g.checked||'')}時点）`:''}</div></div>${S.config.gym?'<button class="btn sm ghost" data-act="gymreset">公式の一覧に戻す</button>':''}</div>
+  ${gymHTML}
+  <label for="gEq">器具を追加（増設や一覧にない器具）</label><div class="row"><input id="gEq" style="flex:1 1 180px;width:auto" placeholder="例: ケーブルクロス"><select id="gCat" style="width:auto" aria-label="カテゴリ">${CATS.map(c=>`<option>${c}</option>`).join('')}</select><button class="btn dark" data-act="gymadd">追加</button></div></div>
+  <h2 class="t-section" style="margin-top:28px">WORKOUT NOTES<span class="ja">種目ごとの設定</span></h2><div style="height:8px"></div>
+  <div class="card"><label for="suEx" style="margin-top:0">種目を選んで設定を追加</label><div class="row" style="flex-wrap:nowrap"><input id="suEx" list="exlist" placeholder="例: レッグプレス"><button class="btn dark" data-act="suadd">追加</button></div></div>
+  ${cards?`<div class="grid">${cards}</div>`:'<div class="empty-note">ラックのフック高さなど、種目ごとに変わる設定はここに。マシンの設定は上のマイジムから。</div>'}
+  <h2 class="t-section" style="margin-top:28px">GENERAL<span class="ja">全体の設定</span></h2><div style="height:8px"></div><div class="card"><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))">
+  <div><label for="g-unit" style="margin-top:0">重量の単位</label><select id="g-unit" data-g="unit"><option value="kg"${isLb()?'':' selected'}>kg（キログラム）</option><option value="lb"${isLb()?' selected':''}>lb（ポンド）</option></select></div>
+  <div><label for="g-bar" style="margin-top:0">バーの重さ（プレート計算用）</label><select id="g-bar" data-g="bar">${[20,15,10].map(v=>`<option value="${v}"${S.config.bar==v?' selected':''}>${v} kg</option>`).join('')}</select></div>
+  ${REST_ON?`<div><label for="g-rest" style="margin-top:0">標準のレスト（秒）</label><input id="g-rest" data-g="rest" inputmode="numeric" value="${S.config.rest}"></div>`:''}
+  <div><label for="g-goal" style="margin-top:0">週の目標回数</label><input id="g-goal" data-g="goal" inputmode="numeric" value="${esc(S.config.goal||4)}"></div></div></div>
+  <details class="card"><summary><span class="hl">バックアップと復元</span><span class="meta">別の端末へ移すときに</span></summary>
+  <div class="row" style="margin:12px 0"><button class="btn sm" data-act="copy">全データをコピー</button></div>
+  <label for="imp">コピーしたデータを貼り付けて復元（今のデータは置き換わります）</label><textarea id="imp"></textarea><div class="row" style="margin-top:8px"><button class="btn sm dark" data-act="import">復元する</button></div></details>`;
+}
+
+/* ルーティン */
+/* 種目（DESIGN 5.3）。選んだ種目は既存のルーティン（config.routines）の items として保存する */
+let exPick=null,exQ='',exGroup='すべて';
+const EX_GROUPS=[['すべて','All'],['胸','Chest'],['背中','Back'],['脚','Legs'],['肩','Shoulders'],['腕','Arms'],['体幹','Core'],['有酸素','Cardio']];
+const groupOf=ex=>isCardio(ex)?'有酸素':partOf(ex);
+function exInit(){const m=todayMenu();exPick=m?m.items.filter(i=>i.ex).map(i=>i.ex):[];exQ='';exGroup='すべて'}
+function exListHTML(){
+  const q=exQ.trim().toLowerCase();
+  const list=allEx().filter(n=>(exGroup==='すべて'||groupOf(n)===exGroup)&&(!q||n.toLowerCase().includes(q)||(EN_EX[n]||'').toLowerCase().includes(q)));
+  const rows=list.map(n=>{const on=exPick.includes(n),en=EN_EX[n],meta=[groupOf(n),eqLabel(n)].filter(Boolean).join(' ・ ');
+    return `<div class="ex-row">${kindIcon(n)}<div class="tx"><div class="n1${en?' up':''}">${esc(en||n)}</div><div class="n2">${en?esc(n)+' ・ ':''}${esc(meta)}</div></div>
+    <button class="add${on?' on':''}" data-act="extog" data-ex="${esc(n)}" aria-pressed="${on}" aria-label="${esc(n)}${on?'を外す':'を追加'}">${on?W_ICON.check:W_ICON.plus}</button></div>`}).join('');
+  const raw=exQ.trim();
+  return rows||`<div class="empty-s">該当する種目がありません${raw?`<div style="margin-top:12px"><button class="btn sm" data-act="exnew">「${esc(raw)}」を種目として追加</button></div>`:''}</div>`;
+}
+const exSaveLabel=()=>exPick.length?`${exPick.length}種目をメニューに保存`:'メニューに保存';
+function exercisesHTML(){
+  if(!exPick)exInit();
+  const m=todayMenu();
+  return `${titleRow('Workout')}<div class="t-sub" style="margin-top:4px">${m?`「${esc(m.name)}」に入れる種目を選びます`:'メニューに入れる種目を選びます'}</div>
+  <label class="search"><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><input id="exQ" type="search" aria-label="種目を検索" placeholder="種目を検索" value="${esc(exQ)}"></label>
+  <div class="chips" role="group" aria-label="部位">${EX_GROUPS.map(([ja,en])=>`<button class="chip-s up" data-act="exgroup" data-g="${ja}" aria-pressed="${ja===exGroup}" aria-label="${ja}">${en}</button>`).join('')}</div>
+  <div class="ex-list" id="exList">${exListHTML()}</div>
+  <div class="ex-dock"><div class="in"><button class="btn-primary" data-act="exsave" id="exSave">${exSaveLabel()}</button></div></div>`;
+}
+
+/* ルーティン（設定画面の中） */
+function routinesHTML(){
+  const mine=S.config.routines.map((r,ri)=>`<div class="card"><div class="ch"><input data-r="${ri}" data-f="name" value="${esc(r.name)}" aria-label="ルーティン名" style="font-weight:700"><button class="ico" data-act="rmr" data-r="${ri}" aria-label="ルーティンを削除">×</button></div>
+  <div class="rt meta" style="margin-top:10px"><span>種目</span><span>セット</span><span>回数</span><span></span></div>
+  ${r.items.map((it,k)=>`<div class="rt"><input list="exlist" data-r="${ri}" data-k="${k}" data-f="ex" value="${esc(it.ex)}" aria-label="種目"><input inputmode="numeric" data-r="${ri}" data-k="${k}" data-f="sets" value="${esc(it.sets)}" aria-label="セット数"><input data-r="${ri}" data-k="${k}" data-f="reps" value="${esc(it.reps)}" aria-label="回数"><button class="ico" data-act="rmri" data-r="${ri}" data-k="${k}" aria-label="種目を外す">×</button></div>`).join('')}
+  <div class="row" style="margin-top:10px;justify-content:space-between"><div class="row"><button class="btn sm" data-act="addri" data-r="${ri}">＋ 種目</button>${REST_ON?`<label style="margin:0">レスト<input inputmode="numeric" data-r="${ri}" data-f="rest" value="${esc(r.rest||S.config.rest)}" style="width:5em;display:inline-block;margin-left:6px" aria-label="レスト秒"> 秒</label>`:''}</div><button class="btn sm dark" data-act="start" data-rid="${r.id}">開始</button></div></div>`).join('');
+  const pre=PRESETS.map(r=>`<div class="card"><h2>${esc(r.name)}</h2><div class="meta">${esc(r.note)}</div><ol class="ex">${r.items.map(i=>`<li>${esc(i.ex)} <span>${i.sets}×${i.reps}</span></li>`).join('')}</ol>${REST_ON?`<div class="meta">レスト ${r.rest}秒</div>`:''}<div class="row"><button class="btn sm" data-act="copyr" data-rid="${r.id}">コピーして編集</button><button class="btn sm dark" data-act="start" data-rid="${r.id}">開始</button></div></div>`).join('');
+  return `<h2 class="t-section" style="margin-top:28px">ROUTINES<span class="ja">ルーティン</span></h2><p class="lead" style="margin-top:6px">よくやるメニューを保存しておくと、開始時に種目と目標セットが並びます。重量は前回の記録が薄く表示されます。</p>
+  <h3 style="margin-top:8px">マイルーティン</h3>${mine||'<div class="empty-note" style="margin-bottom:12px">まだありません。下のおすすめをコピーするのが早いです。</div>'}
+  <button class="btn" data-act="newr">＋ 新しいルーティン</button>
+  <h3>おすすめテンプレート</h3><div class="grid">${pre}</div>`;
+}
+
+/* 描画 */
+function render(force=true){
+  const ae=document.activeElement;
+  if(!force&&ae&&ae.matches&&ae.matches('main input,main textarea,main select')){pending=true;return}
+  pending=false;
+  $('#exlist').innerHTML=allEx().map(e=>`<option value="${esc(e)}">`).join('');
+  if(tab==='workout'&&!active())tab='home';
+  document.body.classList.toggle('no-tabbar',tab==='workout');
+  document.querySelectorAll('#tabbar a').forEach(x=>{if(x.dataset.tab===tab)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
+  main.innerHTML=tab==='progress'?historyHTML():tab==='settings'?settingsHTML():tab==='exercises'?exercisesHTML():tab==='workout'?todayHTML():homeHTML();
+  {const c=$('.segs .cur');if(c&&c.parentNode.scrollWidth>c.parentNode.clientWidth)c.parentNode.scrollLeft=c.offsetLeft-c.parentNode.clientWidth/2+c.clientWidth/2}
+  chartRO.disconnect();const c=$('#chart');if(c){chartRO.observe(c);drawChart()}
+}
+const LEGACY={today:'workout',history:'progress',setup:'settings',routines:'settings'};
+function route(){let h=location.hash.slice(1);h=LEGACY[h]||h;tab=['home','workout','exercises','progress','settings'].includes(h)?h:'home';if(tab==='exercises')exPick=null;render();scrollTo(0,0)}
+addEventListener('hashchange',route);
+document.addEventListener('focusout',()=>setTimeout(()=>{if(pending)render(false)},0));
+
+/* レストタイマー */
+let restEnd=0,beeped=false;
+/* 休憩タイマーは一旦オフ。戻すときは REST_ON を true にする（データの rest 項目は残してある） */
+const REST_ON=false;
+function startRest(sec){if(REST_ON)restEnd=Date.now()+sec*1000}
+function tick(){
+  const a=active(),el=$('#elapsed');if(a&&el)el.textContent=mmss((Date.now()-a.start)/1000);
+  if(!restEnd)return;const left=(restEnd-Date.now())/1000,rt=$('#restT');
+  if(left>0){if(rt)rt.textContent=mmss(left);return}
+  restEnd=0;try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+  if(tab==='workout')render(false);
+}
+setInterval(tick,1000);
+
+/* 操作 */
+function findR(id){return S.config.routines.find(r=>r.id===id)||PRESETS.find(r=>r.id===id)}
+function startSession(r){
+  if(active()){toast('進行中のワークアウトがあります');location.hash='workout';return}
+  const s={id:nid(),start:Date.now(),end:0,name:r?r.name||'ルーティン':'フリー',rest:r?+r.rest||0:0,
+    items:(r?r.items:[]).filter(i=>i.ex).map(i=>isCardio(i.ex)?{ex:i.ex,cardio:true,target:String(i.reps),sets:Array.from({length:Math.max(1,+i.sets||1)},()=>({m:'',d:'',lv:'',ok:false}))}:{ex:i.ex,target:`${i.sets}×${i.reps}`,sets:Array.from({length:Math.max(1,+i.sets||3)},()=>({w:'',r:'',ok:false}))})};
+  wEx=-1;S.sessions.push(s);save('s_'+s.id);if(tab!=='workout')location.hash='workout';else render();
+}
+function addCustom(n){if(!allEx().includes(n)){S.config.custom.push(n);save('config')}}
+let suEx='';
+function openSetup(ex){suEx=ex;const s=S.config.setups[ex]||{};$('#suTitle').textContent=ex;['seat','back','pin','grip','note'].forEach(k=>$('#f-'+k).value=s[k]||'');$('#suDel').style.display=S.config.setups[ex]?'':'none';$('#modal').classList.add('show');$('#f-seat').focus()}
+const closeSetup=()=>$('#modal').classList.remove('show');
+$('#suCancel').onclick=closeSetup;$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeSetup()});
+$('#suForm').addEventListener('submit',e=>{e.preventDefault();const s={t:Date.now()};['seat','back','pin','grip','note'].forEach(k=>{const v=$('#f-'+k).value.trim();if(v)s[k]=v});S.config.setups[suEx]=s;if(!isEquip(suEx))addCustom(suEx);save('config');closeSetup();render();toast(suEx+' の設定を保存しました')});
+$('#suDel').onclick=()=>{const old=S.config.setups[suEx],ex=suEx;delete S.config.setups[ex];save('config');closeSetup();render();toast('設定を削除しました',()=>{S.config.setups[ex]=old;save('config')})};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSetup();if(e.key==='Enter'&&e.target.id==='addEx'){e.preventDefault();act('addex',e.target)}if(e.key==='Enter'&&e.target.id==='suEx'){e.preventDefault();act('suadd',e.target)}if(e.key==='Enter'&&e.target.id==='gEq'){e.preventDefault();act('gymadd',e.target)}});
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)act(b.dataset.act,b)});
+function act(a,b){
+  const d=b.dataset,s=active(),i=+d.i,j=+d.j;
+  if(a==='start')return startSession(d.rid?findR(d.rid):null);
+  if(a==='unit'){S.config.unit=isLb()?'kg':'lb';save('config');render();return toast(`重量の単位を ${unit()} にしました`)}
+  if(a==='wgo'){wEx=+d.i;render();return scrollTo(0,0)}
+  if(a==='wnext'){wEx=Math.min(s.items.length-1,wEx+1);render();return scrollTo(0,0)}
+  if(a==='wundo'){s.items[wEx].sets[+d.j].ok=false;save('s_'+s.id);return render()}
+  if(a==='wstep'||a==='wdone'){const it=s.items[wEx],k=it.sets.findIndex(x=>!x.ok);if(k<0)return;const x=it.sets[k],v=draft(s,it,k);
+    if(a==='wstep'&&d.f==='w'&&isLb()){{const u=toU(v.w),nx=+d.d>0?Math.floor(u/5)*5+5:Math.ceil(u/5)*5-5;x.w=String(fromU(Math.max(0,nx)))}save('s_'+s.id);return render()}
+    if(a==='wstep'){const f=d.f,st=f==='w'?stepOf(it.ex):f==='d'?0.1:1,min=f==='r'||f==='m'?1:0;x[f]=String(Math.max(min,+((+v[f]||0)+st*(+d.d)).toFixed(2)));save('s_'+s.id);return render()}
+    if(isC(it)){if(!(v.m>0)){toast('時間（分）を入力してください');return}x.m=String(v.m);x.d=v.d?String(v.d):'';x.lv=v.lv;x.ok=true}
+    else{if(!(v.r>0)){toast('回数を入力してください');return}x.w=String(v.w);x.r=String(v.r);x.ok=true;startRest(s.rest||+S.config.rest||90)}
+    save('s_'+s.id);return render()}
+  if(a==='addset'){const it=s.items[i],l=it.sets[it.sets.length-1];it.sets.push(isC(it)?{m:'',d:'',lv:l?l.lv:'',ok:false}:{w:l?l.w:'',r:l?l.r:'',ok:false});save('s_'+s.id);return render()}
+  if(a==='rmset'){s.items[i].sets.pop();save('s_'+s.id);return render()}
+  if(a==='rmex'){const old=s.items.splice(i,1)[0],sid=s.id;wEx=-1;save('s_'+sid);render();return toast(old.ex+' を外しました',()=>{const t=S.sessions.find(x=>x.id===sid);if(t){t.items.splice(i,0,old);save('s_'+sid)}})}
+  if(a==='addex'){const inp=$('#addEx'),n=inp.value.trim();if(!n){inp.focus();return}addCustom(n);s.items.push(isCardio(n)?{ex:n,cardio:true,target:'',sets:[{m:'',d:'',lv:'',ok:false}]}:{ex:n,target:'',sets:[0,1,2].map(()=>({w:'',r:'',ok:false}))});save('s_'+s.id);wEx=s.items.length-1;render();return toast(n+' を追加しました')}
+  if(a==='finish'){s.end=Date.now();save('s_'+s.id);restEnd=0;wEx=-1;if(tab==='progress')render();else location.hash='progress';return toast(`お疲れさまでした。${volTxt(vol(s))}${sMin(s)?`・有酸素${+sMin(s).toFixed(1)}分`:''}、${Math.round((s.end-s.start)/6e4)}分`)}
+  if(a==='discard'){const k=S.sessions.indexOf(s),old=S.sessions.splice(k,1)[0];save('s_'+old.id);restEnd=0;wEx=-1;render();return toast('記録を破棄しました',()=>{S.sessions.push(old);save('s_'+old.id)})}
+  if(a==='delsess'){const k=S.sessions.findIndex(x=>x.id===d.id),old=S.sessions.splice(k,1)[0];save('s_'+old.id);render();return toast(fmtD(old.start)+' の記録を削除しました',()=>{S.sessions.push(old);save('s_'+old.id)})}
+  if(a==='setup')return openSetup(d.ex);
+  if(a==='gymrm'){const g=myGym(),k=+d.k,old=g.items.splice(k,1)[0];save('config');render();return toast(old.n+' を外しました',()=>{myGym().items.splice(k,0,old);save('config')})}
+  if(a==='gymadd'){const n=$('#gEq').value.trim();if(!n){$('#gEq').focus();return}if(isEquip(n)){toast('すでに登録されています');return}myGym().items.push({cat:$('#gCat').value,n,count:1,ex:[]});save('config');render();return toast(n+' を追加しました')}
+  if(a==='gymreset'){const old=S.config.gym;S.config.gym=null;save('config');render();return toast('公式の一覧に戻しました',()=>{S.config.gym=old;save('config')})}
+  if(a==='suadd'){const n=$('#suEx').value.trim();if(n)openSetup(n);else $('#suEx').focus();return}
+  if(a==='reststop'){restEnd=0;return render()}
+  if(a==='extog'){const k=exPick.indexOf(d.ex);if(k<0)exPick.push(d.ex);else exPick.splice(k,1);$('#exList').innerHTML=exListHTML();$('#exSave').textContent=exSaveLabel();return}
+  if(a==='exgroup'){exGroup=d.g;return render()}
+  if(a==='exnew'){const n=exQ.trim();if(!n)return;addCustom(n);if(!exPick.includes(n))exPick.push(n);exQ='';exGroup='すべて';render();return toast(n+' を追加しました')}
+  if(a==='exsave'){if(!exPick.length){toast('種目を1つ以上選んでください');return}
+    const m=todayMenu(),old=clone(S.config.routines);
+    const items=exPick.map(n=>(m&&m.items.find(x=>x.ex===n))||(isCardio(n)?{ex:n,sets:1,reps:'20分'}:{ex:n,sets:3,reps:'10'})).map(clone);
+    const mine=m&&S.config.routines.find(r=>r.id===m.id);
+    if(mine)mine.items=items;else S.config.routines.push({id:nid(),name:m?m.name:'マイメニュー',rest:m?m.rest:S.config.rest,items});
+    save('config');location.hash='home';return toast(`${items.length}種目をメニューに保存しました`,()=>{S.config.routines=old;save('config')})}
+  if(a==='newr'){S.config.routines.push({id:nid(),name:'新しいルーティン',rest:S.config.rest,items:[{ex:'',sets:3,reps:'8-10'}]});save('config');return render()}
+  if(a==='copyr'){const p=findR(d.rid);S.config.routines.push({...clone(p),id:nid(),name:p.name+'（マイ）'});save('config');render();return toast('マイルーティンにコピーしました')}
+  if(a==='rmr'){const ri=+d.r,old=S.config.routines.splice(ri,1)[0];save('config');render();return toast('ルーティンを削除しました',()=>{S.config.routines.splice(ri,0,old);save('config')})}
+  if(a==='addri'){S.config.routines[+d.r].items.push({ex:'',sets:3,reps:'10'});save('config');return render()}
+  if(a==='rmri'){S.config.routines[+d.r].items.splice(+d.k,1);save('config');return render()}
+  if(a==='copy'){const t=JSON.stringify(S);(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('コピーしました')).catch(()=>{$('#imp').value=t;$('#imp').select();toast('下の欄のテキストを手動でコピーしてください')});return}
+  if(a==='import'){try{const j=JSON.parse($('#imp').value);if(!j||!Array.isArray(j.sessions)||!j.config)throw 0;const old=clone(S);
+      S.sessions.forEach(x=>dirty.add('s_'+x.id));S={sessions:j.sessions,config:Object.assign(clone(DEF),j.config)};S.sessions.forEach(x=>dirty.add('s_'+x.id));save('config');render();
+      toast('復元しました',()=>{S.sessions.forEach(x=>dirty.add('s_'+x.id));S=old;S.sessions.forEach(x=>dirty.add('s_'+x.id));save('config')})}catch(e){toast('データの形式が正しくありません')}return}
+}
+document.addEventListener('input',e=>{
+  const t=e.target,d=t.dataset;
+  if(t.id==='exQ'){exQ=t.value;$('#exList').innerHTML=exListHTML();return}
+  if(d.j!==undefined){const s=active();if(!s)return;{const v=t.value.trim();s.items[+d.i].sets[+d.j][d.f]=d.f==='w'&&isLb()&&v!==''?String(fromU(v)):v}save('s_'+s.id);const ct=$('#curTxt');if(ct){const it=s.items[+d.i];ct.innerHTML=rowTxt(it,draft(s,it,+d.j))}}
+  else if(d.r!==undefined){const r=S.config.routines[+d.r];if(d.k!==undefined)r.items[+d.k][d.f]=d.f==='sets'?(+t.value||''):t.value;else r[d.f]=d.f==='rest'?(+t.value||''):t.value;save('config')}
+  else if(d.g){S.config[d.g]=d.g==='unit'?(t.value==='lb'?'lb':'kg'):+t.value||DEF[d.g];save('config')}
+});
+document.addEventListener('change',e=>{if(e.target.id==='histEx'){histEx=e.target.value;render()}if(e.target.dataset.f==='ex'&&e.target.value.trim())addCustom(e.target.value.trim())});
+addEventListener('pagehide',saveLocal);
+route();connect();
+/* ホーム画面に追加して使う独立版だけ、オフラインでも開けるようにする（claude.ai 上では何もしない） */
+if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script></body></html>
