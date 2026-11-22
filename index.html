@@ -116,6 +116,18 @@ body.no-tabbar #tabbar{display:none}
 .home-list .rt2{font-size:13px;color:var(--text-muted);white-space:nowrap}
 .empty-s{padding:32px 0;text-align:center;color:var(--text-muted);font-size:13px;line-height:18px}
 
+/* 回復度 */
+.rc{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px 14px;align-items:center}
+.rc-body{display:flex;gap:4px}.rc-body>div{display:flex;flex-direction:column;align-items:center;gap:4px}
+.rc-body svg{width:68px;height:auto;display:block}.rc-body span{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-muted)}
+.rc-list{display:flex;flex-direction:column;gap:7px}
+.rc-row .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rc-row .nm{font-size:12px;line-height:16px;font-weight:700;white-space:nowrap}.rc-row .nm small{margin-left:6px;font-size:10px;font-weight:500;color:var(--text-muted);letter-spacing:0}
+.rc-row .pc{font-size:13px;line-height:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.rc-row .bar{margin-top:3px;height:4px;border-radius:2px;background:var(--track);overflow:hidden}.rc-row .bar i{display:block;height:100%;border-radius:2px}
+.rc-row .st{display:none}
+.rc-note{grid-column:1/-1;font-size:12px;line-height:17px;color:var(--text-muted)}
+
 /* ワークアウト記録（5.2） */
 body.no-tabbar main{padding-bottom:calc(env(safe-area-inset-bottom) + 190px)}
 .w-head{height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -427,6 +439,53 @@ const menuList=()=>(S.config.routines.length?S.config.routines:PRESETS).filter(r
 function todayMenu(){const L=menuList();if(!L.length)return null;const last=done()[0],i=last?L.findIndex(r=>r.name===last.name):-1;return L[(i+1)%L.length]}
 const sameDay=(a,b)=>a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
 function topW(ex,skip){const p=lastFor(ex,skip);if(!p||p.cardio)return 0;return Math.max(0,...okSets(p).map(s=>+s.w||0))}
+/* 回復度（目安）。記録から「部位ごとに、最後にやってからの時間と、そのときの負荷」で推定する。
+   普段どおりの負荷で約48時間、普段の1.5倍以上で約72時間、半分以下で約24時間で100%に戻ると見なす */
+const MUS=['胸','背中','肩','腕','体幹','脚'];
+function musOf(ex){
+  if(isCardio(ex))return{'脚':.3};
+  const p=partOf(ex);if(!p)return{};const m={[p]:1};
+  if(p==='胸'&&/プレス|ディップス|プッシュアップ/.test(ex)){m['肩']=.5;m['腕']=.5}
+  if(p==='背中'){if(/デッドリフト/.test(ex))m['脚']=1;else if(/エクステンション/.test(ex))m['脚']=.5;else m['腕']=.5}
+  if(p==='脚'&&/スクワット|デッドリフト/.test(ex))m['体幹']=.5;
+  if(p==='脚'&&/デッドリフト/.test(ex))m['背中']=.5;
+  if(p==='肩'&&/プレス/.test(ex))m['腕']=.5;
+  return m;
+}
+function sessLoad(s){const L={};s.items.forEach(it=>{const n=isC(it)?cMin(it)/10:okSets(it).length;if(!n)return;const m=musOf(it.ex);for(const k in m)L[k]=(L[k]||0)+n*m[k]});return L}
+function recovery(){
+  const now=Date.now(),H=36e5,hist={},out={};MUS.forEach(m=>{hist[m]=[];out[m]={pct:100,rem:0,trained:false}});
+  S.sessions.slice().sort((a,b)=>a.start-b.start).forEach(s=>{const L=sessLoad(s),t=s.end||now;
+    MUS.forEach(m=>{const l=L[m];if(!l)return;const h=hist[m],base=h.length>=3?h.reduce((a,b)=>a+b,0)/h.length:6;h.push(l);
+      const T=48*Math.min(1.5,Math.max(.5,l/base)),rem=T-(now-t)/H,o=out[m];o.trained=true;
+      if(rem>o.rem){o.rem=rem;o.pct=Math.max(0,Math.min(99,Math.round((1-rem/T)*100)))}})});
+  return out;
+}
+const recCol=o=>!o.trained?'var(--track)':o.pct>=100?'var(--accent)':o.pct>=67?'#E8D44A':o.pct>=34?'#FF9F45':'#FF5A3C';
+function bodySVG(R,back){
+  const c=m=>recCol(R[m]),n='var(--surface-raised)';
+  const common=`<circle cx="60" cy="20" r="13" fill="${n}"/><rect x="54" y="31" width="12" height="11" rx="3" fill="${n}"/>
+  <ellipse cx="32" cy="56" rx="11" ry="10" fill="${c('肩')}"/><ellipse cx="88" cy="56" rx="11" ry="10" fill="${c('肩')}"/>
+  <rect x="20" y="66" width="14" height="34" rx="7" fill="${c('腕')}"/><rect x="86" y="66" width="14" height="34" rx="7" fill="${c('腕')}"/>
+  <rect x="16" y="103" width="12" height="32" rx="6" fill="${c('腕')}"/><rect x="92" y="103" width="12" height="32" rx="6" fill="${c('腕')}"/>
+  <rect x="42" y="186" width="14" height="42" rx="7" fill="${c('脚')}"/><rect x="64" y="186" width="14" height="42" rx="7" fill="${c('脚')}"/>`;
+  const front=`<rect x="40" y="46" width="19" height="21" rx="6" fill="${c('胸')}"/><rect x="61" y="46" width="19" height="21" rx="6" fill="${c('胸')}"/>
+  <rect x="44" y="70" width="32" height="40" rx="8" fill="${c('体幹')}"/><rect x="42" y="113" width="36" height="13" rx="6" fill="${n}"/>
+  <rect x="40" y="129" width="18" height="54" rx="9" fill="${c('脚')}"/><rect x="62" y="129" width="18" height="54" rx="9" fill="${c('脚')}"/>`;
+  const rear=`<rect x="40" y="45" width="40" height="46" rx="10" fill="${c('背中')}"/><rect x="45" y="94" width="30" height="16" rx="6" fill="${c('背中')}"/>
+  <rect x="42" y="113" width="36" height="18" rx="8" fill="${c('脚')}"/><rect x="40" y="134" width="18" height="49" rx="9" fill="${c('脚')}"/><rect x="62" y="134" width="18" height="49" rx="9" fill="${c('脚')}"/>`;
+  return `<svg viewBox="0 0 120 232" aria-hidden="true">${common}${back?rear:front}</svg>`;
+}
+function recoveryHTML(){
+  const R=recovery(),any=MUS.some(m=>R[m].trained);
+  const rows=MUS.map(m=>{const o=R[m],st=!o.trained?'記録なし':o.pct>=100?'READY':`あと約${Math.max(1,Math.ceil(o.rem))}時間`;
+    return `<div class="rc-row"><div class="top"><span class="nm up">${EN_PART[m]}<small>${m}</small></span><span class="pc">${o.trained?o.pct+'%':'—'}</span></div><div class="bar"><i style="width:${o.trained?Math.max(4,o.pct):0}%;background:${recCol(o)}"></i></div><div class="st">${st}</div></div>`}).join('');
+  const ready=MUS.filter(m=>R[m].trained&&R[m].pct>=100),tired=MUS.filter(m=>R[m].pct<67);
+  const label=MUS.map(m=>`${m} ${R[m].trained?R[m].pct+'%':'記録なし'}`).join('、');
+  return `<div class="sec-head" style="margin-top:24px"><h2 class="t-section">RECOVERY<span class="ja">回復度の目安</span></h2></div>
+  <div class="card-s rc" style="margin-top:8px"><div class="rc-body" role="img" aria-label="部位ごとの回復度。${label}"><div>${bodySVG(R,false)}<span>FRONT</span></div><div>${bodySVG(R,true)}<span>BACK</span></div></div><div class="rc-list">${rows}</div>
+  <div class="rc-note">${any?`${tired.length?`休ませたい部位：${tired.join('・')}。`:'疲れが残っている部位はありません。'}`:'ワークアウトを記録すると、部位ごとの回復度が出ます。'}記録からの推定で、体調や睡眠は反映していません。</div></div>`;
+}
 function homeHTML(){
   const now=new Date(),a=active(),menu=a?null:todayMenu();
   const mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-((now.getDay()+6)%7));
@@ -453,6 +512,7 @@ function homeHTML(){
   <div style="margin-top:20px;display:flex;flex-direction:column;gap:4px"><div class="eyebrow" style="color:var(--text-muted)">${DOW_EN[now.getDay()]} ・ ${MON_EN[now.getMonth()]} ${now.getDate()}</div>${big('h1','t-title',title,titleEn)}</div>
   <div class="week" role="group" aria-label="今週の実施状況">${week}</div>
   ${card}
+  ${recoveryHTML()}
   <div class="sec-head" style="margin-top:24px"><h2 class="t-section">WORKOUT<span class="ja">種目</span></h2>${a?'':'<a href="#exercises" style="letter-spacing:.1em;font-weight:700;font-size:11px">EDIT</a>'}</div>
   <div class="home-list">${rows||'<div class="empty-s">種目がありません</div>'}</div>
   ${a?'':'<div class="sec-head" style="margin-top:8px"><button class="link" data-act="start"><b style="letter-spacing:.1em;font-size:11px;color:var(--text);margin-right:8px">QUICK START</b>メニューなしで始める</button></div>'}`;
