@@ -25,7 +25,15 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box;min-width:0}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+/* アプリらしい操作感: 文字選択・長押しメニュー・引っぱりスクロール・ダブルタップ拡大を止める */
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior-y:none;touch-action:manipulation}
+input,textarea{-webkit-user-select:text;user-select:text}
+button,a.icon-btn,a.btn-primary,#tabbar a{transition:transform .08s,opacity .08s}
+button:active,a.icon-btn:active,a.btn-primary:active{transform:scale(.97);opacity:.8}#tabbar a:active{opacity:.6}
+@media (prefers-reduced-motion:no-preference){main.enter{animation:enter .18s ease-out}@keyframes enter{from{opacity:0;transform:translateY(8px)}}}
+#inst{position:fixed;left:12px;right:12px;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px);z-index:9;display:none;gap:12px;align-items:center;padding:14px 8px 14px 16px;border-radius:var(--r-field);background:var(--text);color:var(--on-accent);font-size:13px;line-height:18px;font-weight:500;max-width:512px;margin:0 auto}
+#inst.show{display:flex}#inst b{font-weight:700}#inst button{flex:none;width:44px;height:44px;border:0;background:none;color:var(--on-accent);font-size:20px;cursor:pointer}
 body{margin:0;background:var(--bg);color:var(--text);font:500 15px/20px var(--font);overflow-x:clip}
 button,input,select,textarea{font-family:inherit}
 a{color:var(--text);text-decoration:none}
@@ -241,6 +249,7 @@ label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margi
 @media (prefers-reduced-motion:no-preference){.set{transition:background .2s}}
 </style></head><body>
 <main id="main"></main>
+<div id="inst" role="status"><div><b>ホーム画面に追加するとアプリとして使えます。</b><br><span id="instHow"></span></div><button id="instX" aria-label="閉じる">×</button></div>
 <nav id="tabbar" aria-label="メイン"><div class="in">
 <a href="#home" data-tab="home"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-5H9v5H4z"/></svg><span>HOME</span></a>
 <a href="#exercises" data-tab="exercises"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7v10M17.5 7v10M3 9.5v5M21 9.5v5M6.5 12h11"/></svg><span>WORKOUT</span></a>
@@ -644,7 +653,7 @@ function render(force=true){
   chartRO.disconnect();const c=$('#chart');if(c){chartRO.observe(c);drawChart()}
 }
 const LEGACY={today:'workout',history:'progress',setup:'settings',routines:'settings'};
-function route(){let h=location.hash.slice(1);h=LEGACY[h]||h;tab=['home','workout','exercises','progress','settings'].includes(h)?h:'home';if(tab==='exercises')exPick=null;render();scrollTo(0,0)}
+function route(){let h=location.hash.slice(1);h=LEGACY[h]||h;tab=['home','workout','exercises','progress','settings'].includes(h)?h:'home';if(tab==='exercises')exPick=null;render();scrollTo(0,0);main.classList.remove('enter');void main.offsetWidth;main.classList.add('enter')}
 addEventListener('hashchange',route);
 document.addEventListener('focusout',()=>setTimeout(()=>{if(pending)render(false)},0));
 
@@ -735,6 +744,12 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{if(e.target.id==='histEx'){histEx=e.target.value;render()}if(e.target.dataset.f==='ex'&&e.target.value.trim())addCustom(e.target.value.trim())});
 addEventListener('pagehide',saveLocal);
 route();connect();
+/* ブラウザで開いているスマホには、ホーム画面への追加方法を案内する（独立版のみ・一度閉じたら出さない） */
+{const standalone=navigator.standalone===true||matchMedia('(display-mode: standalone)').matches,ua=navigator.userAgent,ios=/iPhone|iPad|iPod/.test(ua),and=/Android/.test(ua);
+  let seen=false;try{seen=!!localStorage.getItem('setnote.inst')}catch(e){}
+  if(!standalone&&(ios||and)&&!/claude/.test(location.hostname)&&location.protocol==='https:'&&!seen){
+    $('#instHow').textContent=ios?'Safari の共有ボタン →「ホーム画面に追加」':'ブラウザのメニュー →「ホーム画面に追加」';$('#inst').classList.add('show');
+    $('#instX').onclick=()=>{$('#inst').classList.remove('show');try{localStorage.setItem('setnote.inst','1')}catch(e){}}}}
 /* ホーム画面に追加して使う独立版だけ、オフラインでも開けるようにする（claude.ai 上では何もしない） */
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
