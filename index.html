@@ -40,6 +40,8 @@ a{color:var(--text);text-decoration:none}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--text);outline-offset:2px}
 svg.i{display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
+/* ステータスバーの下に内容が透けないようにする */
+body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--bg);z-index:20}
 /* 画面の枠 */
 main{max-width:560px;margin:0 auto;padding:var(--pad-top) var(--pad-x) calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 24px)}
 
@@ -146,6 +148,7 @@ body.no-tabbar main{padding-bottom:calc(env(safe-area-inset-bottom) + 190px)}
 .set-row .no{width:18px;font-size:13px;font-weight:700}.set-row .tx{flex:1;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .set-row.done{color:var(--text);cursor:pointer}.set-row .ck{color:var(--accent)}
 .set-row.cur{background:var(--text);color:var(--on-accent)}.set-row .st{font-size:12px;font-weight:700}
+.set-add{height:44px;border:1px dashed var(--track);border-radius:var(--r-row);background:none;color:var(--text-muted);font:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;width:100%}.set-add svg{width:16px;height:16px}
 .w-more{margin-top:20px;border-top:1px solid var(--surface-raised);padding-top:4px}
 .w-more summary{min-height:44px;display:flex;align-items:center;font-size:13px;color:var(--text-muted);cursor:pointer;list-style:none}.w-more summary::-webkit-details-marker{display:none}
 .w-dock{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--bg);padding:0 var(--pad-x) calc(env(safe-area-inset-bottom) + 24px)}
@@ -468,10 +471,19 @@ const stepOf=ex=>kindOf(ex)==='dumbbell'?2:2.5;
 function draft(a,it,j){
   /* 初期値の決め方: そのセットに入れた値 → 前回の同じセット番号の回数 → 直前のセットの値 → 目標・前回の値 */
   const s=it.sets[j],b=j?draft(a,it,j-1):null,prev=lastFor(it.ex,a.id),same=prev&&prev.sets[j]&&prev.sets[j].ok?prev.sets[j]:null,pv=prev&&(prev.sets[j]||prev.sets[prev.sets.length-1]);
-  const pick=(f,fb)=>has(s[f])?s[f]:(f==='r'&&same&&has(same.r))?same.r:b&&has(b[f])?b[f]:fb;
+  const pick=(f,fb)=>has(s[f])?s[f]:(same&&has(same[f]))?same[f]:b&&has(b[f])?b[f]:fb;
   if(isC(it))return{m:+pick('m',parseFloat(it.target)||(pv&&+pv.m)||10)||0,d:+pick('d',(pv&&+pv.d)||0)||0,lv:has(s.lv)?s.lv:(b&&b.lv)||(pv&&pv.lv)||''};
   const tr=parseInt((it.target||'').split('×')[1])||0;
-  return{w:+pick('w',(pv&&+pv.w)||0)||0,r:+pick('r',tr||(pv&&+pv.r)||10)||0};
+  /* 回数は「前回の同じセット → 目標」を先に見る。今日の前のセットの回数は引き継がない */
+  const r=has(s.r)?s.r:(same&&has(same.r))?same.r:tr||(b&&b.r)||(pv&&+pv.r)||10;
+  return{w:+pick('w',(pv&&+pv.w)||0)||0,r:+r||0};
+}
+/* これからのセットの行に出す予定。今のセットの値は映さず、前回の同じセットか目標だけを出す */
+function planTxt(a,it,k){
+  const s=it.sets[k],prev=lastFor(it.ex,a.id),same=prev&&prev.sets[k]&&prev.sets[k].ok?prev.sets[k]:null;
+  if(isC(it)){const m=has(s.m)?s.m:same?same.m:parseFloat(it.target)||'';return m?`${m} 分`:'—'}
+  const tr=parseInt((it.target||'').split('×')[1])||0,w=has(s.w)?s.w:same?same.w:'',r=has(s.r)?s.r:same?same.r:tr||'';
+  return w!==''?`${fmtW(w)} × ${r||'—'}`:r?`— × ${r}`:'—';
 }
 const rowTxt=(it,v)=>isC(it)?`${v.m} 分${+v.d?` ・ ${v.d} km`:''}${v.lv?` ・ ${esc(v.lv)}`:''}`:`${fmtW(v.w)} × ${v.r}`;
 function numCard(label,ja,val,unit,i,j,f,dec){
@@ -484,7 +496,7 @@ function todayHTML(){
   const a=active(),n=a.items.length;
   const head=(sub)=>`<div class="w-head"><a class="icon-btn" href="#home" aria-label="ホームに戻る">${ICON.back}</a><div class="mid"><div class="nm${EN_MENU[a.name]?' up':''}">${esc(EN_MENU[a.name]||a.name)}</div><div class="eyebrow">${sub}</div></div><button class="pill" data-act="finish">FINISH</button></div>`;
   const more=(i)=>`<details class="w-more"><summary>その他の操作</summary>
-    ${i>=0?`<div class="row"><button class="btn sm" data-act="addset" data-i="${i}">${isC(a.items[i])?'＋ 区間':'＋ セット'}</button>${a.items[i].sets.length>1?`<button class="btn sm" data-act="rmset" data-i="${i}">最後の${isC(a.items[i])?'区間':'セット'}を消す</button>`:''}<button class="btn sm" data-act="rmex" data-i="${i}">この種目を外す</button></div>`:''}
+    ${i>=0?`<div class="row">${a.items[i].sets.length>1?`<button class="btn sm" data-act="rmset" data-i="${i}">最後の${isC(a.items[i])?'区間':'セット'}を消す</button>`:''}<button class="btn sm" data-act="rmex" data-i="${i}">この種目を外す</button></div>`:''}
     <label for="addEx">種目を追加（一覧にない名前もそのまま登録できます）</label><div class="row" style="flex-wrap:nowrap"><input id="addEx" list="exlist" placeholder="例: ラットプルダウン"><button class="btn dark" data-act="addex">追加</button></div>
     <div class="row" style="margin-top:16px"><button class="btn sm ghost" data-act="discard">記録を破棄</button></div></details>`;
   if(!n)return head('NO WORKOUT')+`<div class="empty-s">まだ種目がありません。下から追加してください。</div><details class="w-more" open><summary>種目を追加</summary><div class="row" style="flex-wrap:nowrap"><input id="addEx" list="exlist" placeholder="例: ラットプルダウン" aria-label="種目を追加"><button class="btn dark" data-act="addex">追加</button></div><div class="row" style="margin-top:16px"><button class="btn sm ghost" data-act="discard">記録を破棄</button></div></details>`;
@@ -499,7 +511,7 @@ function todayHTML(){
   const rows=it.sets.map((s,k)=>{
     if(s.ok)return `<button class="set-row done" data-act="wundo" data-j="${k}" aria-label="セット ${k+1} 完了 ${rowTxt(it,s)}。押すと記録し直せます"><span class="no">${k+1}</span><span class="tx">${rowTxt(it,s)}</span><span class="ck" role="img" aria-label="完了">${W_ICON.check}</span></button>`;
     if(k===j)return `<div class="set-row cur"><span class="no">${k+1}</span><span class="tx" id="curTxt">${rowTxt(it,cur)}</span><span class="st">記録中</span></div>`;
-    return `<div class="set-row"><span class="no">${k+1}</span><span class="tx">${rowTxt(it,draft(a,it,k))}</span></div>`}).join('');
+    return `<div class="set-row"><span class="no">${k+1}</span><span class="tx">${planTxt(a,it,k)}</span></div>`}).join('');
   const resting=REST_ON&&restEnd>Date.now();
   const restBox=resting?`<div class="rest-box"><div class="lb">REST</div><div class="tm" id="restT">${mmss((restEnd-Date.now())/1000)}</div><button data-act="reststop">スキップ</button></div>`
     :`<div class="rest-idle">${last?'最後の種目です':'次の種目：'+esc(a.items[i+1].ex)}</div>`;
@@ -513,7 +525,7 @@ function todayHTML(){
   ${cards?`<div class="num-grid">${cards}</div>`:''}
   ${C&&!allDone?`<label for="lvIn">強度（Lv・傾斜など）</label><input id="lvIn" data-i="${i}" data-j="${j}" data-f="lv" value="${esc(cur.lv)}" placeholder="例: 傾斜3">`:''}
   ${!C&&BB.has(it.ex)&&!allDone?plateSVG(cur.w):''}
-  <div class="set-list">${rows}</div>
+  <div class="set-list">${rows}<button class="set-add" data-act="addset" data-i="${i}">${W_ICON.plus}<span>${C?'区間':'セット'}を追加</span></button></div>
   ${more(i)}
   <div class="w-dock"><div class="in">${restBox}${mainBtn}</div></div>`;
 }
@@ -702,7 +714,7 @@ function act(a,b){
     if(isC(it)){if(!(v.m>0)){toast('時間（分）を入力してください');return}x.m=String(v.m);x.d=v.d?String(v.d):'';x.lv=v.lv;x.ok=true}
     else{if(!(v.r>0)){toast('回数を入力してください');return}x.w=String(v.w);x.r=String(v.r);x.ok=true;startRest(s.rest||+S.config.rest||90)}
     save('s_'+s.id);return render()}
-  if(a==='addset'){const it=s.items[i],l=it.sets[it.sets.length-1];it.sets.push(isC(it)?{m:'',d:'',lv:l?l.lv:'',ok:false}:{w:l?l.w:'',r:l?l.r:'',ok:false});save('s_'+s.id);return render()}
+  if(a==='addset'){const it=s.items[i],l=it.sets[it.sets.length-1];it.sets.push(isC(it)?{m:'',d:'',lv:'',ok:false}:{w:'',r:'',ok:false});save('s_'+s.id);return render()}
   if(a==='rmset'){s.items[i].sets.pop();save('s_'+s.id);return render()}
   if(a==='rmex'){const old=s.items.splice(i,1)[0],sid=s.id;wEx=-1;save('s_'+sid);render();return toast(old.ex+' を外しました',()=>{const t=S.sessions.find(x=>x.id===sid);if(t){t.items.splice(i,0,old);save('s_'+sid)}})}
   if(a==='addex'){const inp=$('#addEx'),n=inp.value.trim();if(!n){inp.focus();return}addCustom(n);s.items.push(isCardio(n)?{ex:n,cardio:true,target:'',sets:[{m:'',d:'',lv:'',ok:false}]}:{ex:n,target:'',sets:[0,1,2].map(()=>({w:'',r:'',ok:false}))});save('s_'+s.id);wEx=s.items.length-1;render();return toast(n+' を追加しました')}
