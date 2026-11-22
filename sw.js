@@ -1,6 +1,6 @@
 /* SETNOTE: 一度開いたファイルを端末に保存して、電波がなくても開けるようにする。
    通信できるときは裏で新しい版を取りにいき、次に開いたときに反映する */
-const CACHE = 'setnote-v4';
+const CACHE = 'setnote-v5';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {

@@ -118,8 +118,8 @@ body.no-tabbar #tabbar{display:none}
 
 /* 回復度 */
 .rc{display:flex;flex-direction:column;gap:16px}
-.rc-body{display:flex;justify-content:center;gap:28px}.rc-body>div{display:flex;flex-direction:column;align-items:center;gap:4px}
-.rc-body svg{width:112px;height:auto;display:block}.rc-body span{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-muted)}
+.rc-body{display:flex;justify-content:center;gap:16px}.rc-body>div{display:flex;flex-direction:column;align-items:center;gap:4px}
+.rc-body svg{width:136px;height:auto;display:block}.rc-body span{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-muted)}
 .rc-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px}
 .rc-row .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .rc-row .nm{font-size:12px;line-height:16px;font-weight:700;white-space:nowrap}.rc-row .nm small{margin-left:6px;font-size:10px;font-weight:500;color:var(--text-muted);letter-spacing:0}
@@ -463,26 +463,35 @@ function recovery(){
 }
 const recCol=o=>!o.trained?'var(--track)':o.pct>=100?'var(--accent)':o.pct>=67?'#E8D44A':o.pct>=34?'#FF9F45':'#FF5A3C';
 function bodySVG(R,back){
-  const c=m=>recCol(R[m]),n='var(--surface-raised)',mir=g=>g+`<g transform="translate(120 0) scale(-1 1)">${g}</g>`;
-  /* 体の輪郭（左半分を描いて左右反転） */
-  const sil=`<path fill="${n}" stroke="${n}" stroke-width="3" stroke-linejoin="round" d="M60 27L54 27L53 34L36 40L27 46L23 70L21 92L17 118L16 128L14 140L20 142L23 128L29 96L33 68L37 86L40 104L37 122L35 150L38 178L37 196L41 224L37 234L52 234L51 224L53 196L53 178L58 133L60 131Z"/>`;
-  const delt=`<path fill="${c('肩')}" d="M37 41Q27 43 26 55Q27 61 30 63Q34 54 41 47Z"/>`;
-  const upper=`<path fill="${c('腕')}" d="M27 65Q23 77 25 89Q30 91 32 87Q35 75 33 67Q30 62 27 65Z"/>`;
-  const fore=`<path fill="${c('腕')}" d="M23 95Q19 107 19 124L23 125Q28 109 29 97Q26 92 23 95Z"/>`;
-  const front=delt+upper+fore+
-    `<path fill="${c('胸')}" d="M42 46Q51 43 59 46L59 62Q50 68 43 63Q38 56 42 46Z"/>
-    <path fill="${c('体幹')}" d="M42 68Q44 70 47 69L47 105Q43 107 41 104Q39 86 42 68Z"/>
-    <rect fill="${c('体幹')}" x="49" y="67" width="10" height="10" rx="3"/><rect fill="${c('体幹')}" x="49" y="79" width="10" height="10" rx="3"/><rect fill="${c('体幹')}" x="49" y="91" width="10" height="10" rx="3"/><path fill="${c('体幹')}" d="M49 103H59V116Q52 114 49 108Z"/>
-    <path fill="${c('脚')}" d="M39 126Q35 150 39 174Q44 177 47 172Q50 150 47 128Z"/><path fill="${c('脚')}" d="M49 132Q52 152 49 172Q53 176 55 172Q58 152 57 137Z"/>
-    <path fill="${c('脚')}" d="M40 184Q37 200 42 220L48 220Q52 200 51 184Q45 180 40 184Z"/>`;
-  const rear=delt+upper+fore+
-    `<path fill="${c('背中')}" d="M59 29L55 31Q47 38 39 42Q50 47 59 62Z"/>
-    <path fill="${c('背中')}" d="M40 50Q49 54 59 67L59 92Q50 93 44 87Q39 70 40 50Z"/>
-    <rect fill="${c('背中')}" x="50" y="95" width="9" height="15" rx="3"/>
-    <path fill="${c('脚')}" d="M40 113Q37 126 44 132Q54 135 59 129L59 113Q50 109 40 113Z"/>
-    <path fill="${c('脚')}" d="M38 137Q36 157 40 174Q48 178 55 174Q57 155 56 137Q46 141 38 137Z"/>
-    <path fill="${c('脚')}" d="M39 184Q35 198 42 214Q48 216 52 212Q54 197 51 184Q45 180 39 184Z"/>`;
-  return `<svg viewBox="8 0 104 240" aria-hidden="true"><ellipse cx="60" cy="15" rx="9.5" ry="11.5" fill="${n}"/>${mir(sil)}<g stroke="var(--surface)" stroke-width="1.4" stroke-linejoin="round">${mir(back?rear:front)}</g></svg>`;
+  const c=m=>{const o=R[m];return o.trained?recCol(o):'var(--bar-muted)'},n='var(--track)',mir=g=>g+`<g transform="translate(200 0) scale(-1 1)">${g}</g>`;
+  const P=(m,d)=>`<path fill="${c(m)}" d="${d}"/>`,L=d=>`<path fill="none" stroke="var(--surface)" stroke-width="1.6" stroke-linecap="round" d="${d}"/>`;
+  /* 体の輪郭（左半分。右は左右反転） */
+  const sil=`<path fill="${n}" d="M100 58L91 58C91 70 90 76 86 80C78 84 66 86 58 90C48 94 44 104 44 116C43 130 40 140 38 152C36 164 32 172 30 186C28 200 26 214 25 226C22 232 20 242 22 252C24 258 30 258 32 250C34 242 35 234 36 228C40 214 46 200 48 186C50 174 52 162 54 150C56 140 58 134 60 130C61 150 64 168 66 184C66 196 62 208 61 222C59 250 60 280 64 306C66 318 65 326 64 336C62 356 64 384 70 408C70 416 64 424 62 430L84 430C84 422 82 416 82 408C86 384 88 356 86 336C86 326 87 318 88 306C92 280 97 250 100 232Z"/>`;
+  const delt=P('肩','M64 88C52 90 46 100 46 114C46 122 48 128 50 132C54 122 60 110 70 100C70 94 68 90 64 88Z');
+  const fore=P('腕','M40 180C34 194 30 210 29 224L33 226C36 212 40 198 44 184C43 180 41 179 40 180Z')+P('腕','M46 186C42 200 38 214 36 226L39 227C43 213 47 200 49 188C48 185 47 185 46 186Z');
+  const front=P('背中','M90 66C88 76 80 82 66 86L84 88C88 82 90 74 90 66Z')+delt+
+    P('胸','M72 94C80 90 92 90 99 92L99 128C90 136 78 136 70 128C64 120 64 106 72 94Z')+L('M68 110C80 105 90 105 99 108')+
+    P('腕','M52 134C46 144 44 158 46 172C50 176 54 174 56 170C58 158 58 146 57 136C55 132 53 132 52 134Z')+fore+
+    P('体幹','M70 134C74 138 78 140 81 140L81 206C76 204 70 198 66 190C66 170 66 150 70 134Z')+L('M68 150L80 156M67 164L80 170M67 178L80 184')+
+    P('体幹','M84 136H98V152H84Z')+P('体幹','M84 155H98V171H84Z')+P('体幹','M84 174H98V190H84Z')+P('体幹','M84 193H98V226C92 222 86 212 84 200Z')+
+    P('脚','M64 226C60 250 62 284 68 306C71 308 73 306 74 302C72 276 72 250 74 230C70 224 66 224 64 226Z')+
+    P('脚','M77 230C74 252 75 280 78 302C82 304 84 302 85 298C88 276 88 250 86 232C83 228 79 228 77 230Z')+
+    P('脚','M90 236C92 254 92 270 90 284C94 272 97 256 98 240C96 236 92 234 90 236Z')+
+    P('脚','M90 286C94 294 93 306 89 314C86 315 85 312 86 308C88 300 89 293 90 286Z')+
+    P('脚','M68 340C64 358 66 384 72 404L76 404C76 384 76 358 74 340C72 337 70 337 68 340Z')+
+    P('脚','M78 342C82 356 84 374 82 392C80 394 79 392 79 388C80 372 79 356 77 344Z');
+  const rear=P('背中','M99 62L92 64C90 74 80 82 62 88C74 92 88 100 99 122Z')+delt+
+    P('背中','M66 102C74 108 84 116 94 126C86 132 76 130 68 124C64 116 64 108 66 102Z')+
+    P('背中','M62 128C70 134 84 136 96 130L99 134L99 188C92 186 84 180 78 170C70 158 64 144 62 128Z')+
+    P('背中','M86 186C90 190 95 192 99 192V222C92 220 87 210 86 198Z')+
+    P('体幹','M68 176C72 184 78 190 83 194C83 204 82 212 80 218C72 214 67 206 66 196C66 188 67 182 68 176Z')+
+    P('腕','M52 134C46 144 44 158 46 172C50 176 54 174 56 170C58 158 58 146 57 136C55 132 53 132 52 134Z')+L('M51 148C51 158 52 166 54 173')+fore+
+    P('脚','M64 220C62 234 64 246 72 252C82 256 94 252 99 244L99 226C88 218 74 216 64 220Z')+
+    P('脚','M64 258C61 276 63 296 67 312C72 314 76 312 78 308C78 290 78 272 78 260C74 258 68 256 64 258Z')+
+    P('脚','M81 260C81 276 82 294 84 310C88 312 92 310 93 306C95 290 96 274 96 262C92 260 86 258 81 260Z')+
+    P('脚','M66 338C62 352 64 370 70 384C74 384 76 380 76 374C76 360 76 348 74 338C72 335 68 335 66 338Z')+
+    P('脚','M77 338C77 350 78 364 79 378C82 382 85 378 86 372C88 360 88 348 86 340C84 336 79 336 77 338Z');
+  return `<svg viewBox="14 6 172 430" aria-hidden="true"><ellipse cx="100" cy="34" rx="16" ry="21" fill="${n}"/>${mir(sil)}<g stroke="var(--surface)" stroke-width="1.6" stroke-linejoin="round">${mir(back?rear:front)}</g></svg>`;
 }
 function recoveryHTML(){
   const R=recovery(),any=MUS.some(m=>R[m].trained);
