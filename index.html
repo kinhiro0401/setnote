@@ -69,9 +69,9 @@ main{max-width:560px;margin:0 auto;padding:var(--pad-top) var(--pad-x) calc(var(
 .list-row:last-child{border-bottom:0}
 
 /* タブバー */
-#tabbar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--bg);border-top:1px solid var(--surface-raised);padding:0 var(--pad-x) env(safe-area-inset-bottom)}
-#tabbar .in{max-width:512px;margin:0 auto;height:var(--tabbar-h);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-#tabbar a{letter-spacing:.1em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:500;color:var(--text-muted)}
+#tabbar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--bg);border-top:1px solid var(--surface-raised);padding:0 12px env(safe-area-inset-bottom)}
+#tabbar .in{max-width:512px;margin:0 auto;height:var(--tabbar-h);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+#tabbar a{letter-spacing:.06em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:500;color:var(--text-muted)}
 #tabbar a[aria-current=page]{font-weight:700;color:var(--text)}
 body.no-tabbar #tabbar{display:none}
 
@@ -119,7 +119,7 @@ body.no-tabbar #tabbar{display:none}
 /* 回復度 */
 .rc{display:flex;flex-direction:column;gap:16px}
 .rc-body{display:flex;justify-content:center;gap:8px}.rc-body>div{display:flex;flex-direction:column;align-items:center;gap:4px}
-.rc-body svg{width:142px;height:auto;display:block}.rc-body span{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-muted)}
+.rc-body svg{width:148px;height:auto;display:block}.rc-body span{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-muted)}
 .rc-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px}
 .rc-row .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .rc-row .nm{font-size:12px;line-height:16px;font-weight:700;white-space:nowrap}.rc-row .nm small{margin-left:6px;font-size:10px;font-weight:500;color:var(--text-muted);letter-spacing:0}
@@ -268,6 +268,7 @@ label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margi
 <nav id="tabbar" aria-label="メイン"><div class="in">
 <a href="#home" data-tab="home"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-5H9v5H4z"/></svg><span>HOME</span></a>
 <a href="#exercises" data-tab="exercises"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7v10M17.5 7v10M3 9.5v5M21 9.5v5M6.5 12h11"/></svg><span>WORKOUT</span></a>
+<a href="#recovery" data-tab="recovery"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg><span>RECOVERY</span></a>
 <a href="#progress" data-tab="progress"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg><span>PROGRESS</span></a>
 </div></nav>
 <div id="toast"><span id="toastMsg"></span><button id="toastUndo">元に戻す</button></div>
@@ -476,8 +477,8 @@ function recoveryHTML(){
     return `<div class="rc-row"><div class="top"><span class="nm up">${EN_PART[m]}<small>${m}</small></span><span class="pc">${o.trained?o.pct+'%':'—'}</span></div><div class="bar"><i style="width:${o.trained?Math.max(4,o.pct):0}%;background:${recCol(o)}"></i></div><div class="st">${st}</div></div>`}).join('');
   const ready=MUS.filter(m=>R[m].trained&&R[m].pct>=100),tired=MUS.filter(m=>R[m].pct<67);
   const label=MUS.map(m=>`${m} ${R[m].trained?R[m].pct+'%':'記録なし'}`).join('、');
-  return `<div class="sec-head" style="margin-top:24px"><h2 class="t-section">RECOVERY<span class="ja">回復度の目安</span></h2></div>
-  <div class="card-s rc" style="margin-top:8px"><div class="rc-body" role="img" aria-label="部位ごとの回復度。${label}"><div>${bodySVG(R,false)}<span>FRONT</span></div><div>${bodySVG(R,true)}<span>BACK</span></div></div><div class="rc-list">${rows}</div>
+  return `${titleRow('Recovery')}<div class="t-sub" style="margin:4px 0 16px">部位ごとの回復度の目安</div>
+  <div class="card-s rc"><div class="rc-body" role="img" aria-label="部位ごとの回復度。${label}"><div>${bodySVG(R,false)}<span>FRONT</span></div><div>${bodySVG(R,true)}<span>BACK</span></div></div><div class="rc-list">${rows}</div>
   <div class="rc-note">${any?`${tired.length?`休ませたい部位：${tired.join('・')}。`:'疲れが残っている部位はありません。'}`:'ワークアウトを記録すると、部位ごとの回復度が出ます。'}記録からの推定で、体調や睡眠は反映していません。</div></div>`;
 }
 function homeHTML(){
@@ -506,7 +507,6 @@ function homeHTML(){
   <div style="margin-top:20px;display:flex;flex-direction:column;gap:4px"><div class="eyebrow" style="color:var(--text-muted)">${DOW_EN[now.getDay()]} ・ ${MON_EN[now.getMonth()]} ${now.getDate()}</div>${big('h1','t-title',title,titleEn)}</div>
   <div class="week" role="group" aria-label="今週の実施状況">${week}</div>
   ${card}
-  ${recoveryHTML()}
   <div class="sec-head" style="margin-top:24px"><h2 class="t-section">WORKOUT<span class="ja">種目</span></h2>${a?'':'<a href="#exercises" style="letter-spacing:.1em;font-weight:700;font-size:11px">EDIT</a>'}</div>
   <div class="home-list">${rows||'<div class="empty-s">種目がありません</div>'}</div>
   ${a?'':'<div class="sec-head" style="margin-top:8px"><button class="link" data-act="start"><b style="letter-spacing:.1em;font-size:11px;color:var(--text);margin-right:8px">QUICK START</b>メニューなしで始める</button></div>'}`;
@@ -714,12 +714,12 @@ function render(force=true){
   if(tab==='workout'&&!active())tab='home';
   document.body.classList.toggle('no-tabbar',tab==='workout');
   document.querySelectorAll('#tabbar a').forEach(x=>{if(x.dataset.tab===tab)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
-  main.innerHTML=tab==='progress'?historyHTML():tab==='settings'?settingsHTML():tab==='exercises'?exercisesHTML():tab==='workout'?todayHTML():homeHTML();
+  main.innerHTML=tab==='recovery'?recoveryHTML():tab==='progress'?historyHTML():tab==='settings'?settingsHTML():tab==='exercises'?exercisesHTML():tab==='workout'?todayHTML():homeHTML();
   {const c=$('.segs .cur');if(c&&c.parentNode.scrollWidth>c.parentNode.clientWidth)c.parentNode.scrollLeft=c.offsetLeft-c.parentNode.clientWidth/2+c.clientWidth/2}
   chartRO.disconnect();const c=$('#chart');if(c){chartRO.observe(c);drawChart()}
 }
 const LEGACY={today:'workout',history:'progress',setup:'settings',routines:'settings'};
-function route(){let h=location.hash.slice(1);h=LEGACY[h]||h;tab=['home','workout','exercises','progress','settings'].includes(h)?h:'home';if(tab==='exercises')exPick=null;render();scrollTo(0,0);main.classList.remove('enter');void main.offsetWidth;main.classList.add('enter')}
+function route(){let h=location.hash.slice(1);h=LEGACY[h]||h;tab=['home','workout','exercises','recovery','progress','settings'].includes(h)?h:'home';if(tab==='exercises')exPick=null;render();scrollTo(0,0);main.classList.remove('enter');void main.offsetWidth;main.classList.add('enter')}
 addEventListener('hashchange',route);
 document.addEventListener('focusout',()=>setTimeout(()=>{if(pending)render(false)},0));
 
