@@ -117,6 +117,11 @@ body.no-tabbar #tabbar{display:none}
 .empty-s{padding:32px 0;text-align:center;color:var(--text-muted);font-size:13px;line-height:18px}
 
 /* 回復度 */
+.rc-mini{margin-top:12px;min-height:56px;padding:10px 12px 10px 16px;border-radius:var(--r-field);background:var(--surface);display:flex;align-items:center;gap:12px;color:var(--text)}
+.rc-mini .tx{flex:1;display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:18px;color:var(--text-muted)}.rc-mini b{font-size:11px;line-height:16px;letter-spacing:.14em;color:var(--text)}
+.rc-mini svg:last-child{color:var(--text-muted);flex:none}.rc-mini svg:first-child{flex:none;color:var(--accent)}
+#upd{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 10px);z-index:21;display:none;align-items:center;gap:12px;padding:8px 8px 8px 16px;border-radius:var(--r-field);background:var(--text);color:var(--on-accent);font-size:13px;line-height:18px;font-weight:700;max-width:512px;margin:0 auto}
+#upd.show{display:flex}#upd span{flex:1}#upd button{flex:none;height:40px;padding:0 16px;border:0;border-radius:20px;background:var(--on-accent);color:var(--text);font-size:13px;font-weight:700;cursor:pointer}
 .rc{display:flex;flex-direction:column;gap:16px}
 .rc-body{display:flex;justify-content:center;gap:8px}.rc-body>div{display:flex;flex-direction:column;align-items:center;gap:4px}
 .rc-body svg{width:148px;height:auto;display:block}.rc-body span{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-muted)}
@@ -264,6 +269,7 @@ label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margi
 @media (prefers-reduced-motion:no-preference){.set{transition:background .2s}}
 </style></head><body>
 <main id="main"></main>
+<div id="upd" role="status"><span>新しい版があります</span><button id="updGo">更新する</button></div>
 <div id="inst" role="status"><div><b>ホーム画面に追加するとアプリとして使えます。</b><br><span id="instHow"></span></div><button id="instX" aria-label="閉じる">×</button></div>
 <nav id="tabbar" aria-label="メイン"><div class="in">
 <a href="#home" data-tab="home"><svg class="i" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-5H9v5H4z"/></svg><span>HOME</span></a>
@@ -507,6 +513,8 @@ function homeHTML(){
   <div style="margin-top:20px;display:flex;flex-direction:column;gap:4px"><div class="eyebrow" style="color:var(--text-muted)">${DOW_EN[now.getDay()]} ・ ${MON_EN[now.getMonth()]} ${now.getDate()}</div>${big('h1','t-title',title,titleEn)}</div>
   <div class="week" role="group" aria-label="今週の実施状況">${week}</div>
   ${card}
+  ${(()=>{const R=recovery();if(!MUS.some(m=>R[m].trained))return'';const tired=MUS.filter(m=>R[m].trained&&R[m].pct<67);
+    return `<a class="rc-mini" href="#recovery"><svg class="i" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg><span class="tx"><b>RECOVERY</b>${tired.length?`休ませたい部位：${tired.map(m=>`${m} ${R[m].pct}%`).join('・')}`:'疲れが残っている部位はありません'}</span><svg class="i" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>`})()}
   <div class="sec-head" style="margin-top:24px"><h2 class="t-section">WORKOUT<span class="ja">種目</span></h2>${a?'':'<a href="#exercises" style="letter-spacing:.1em;font-weight:700;font-size:11px">EDIT</a>'}</div>
   <div class="home-list">${rows||'<div class="empty-s">種目がありません</div>'}</div>
   ${a?'':'<div class="sec-head" style="margin-top:8px"><button class="link" data-act="start"><b style="letter-spacing:.1em;font-size:11px;color:var(--text);margin-right:8px">QUICK START</b>メニューなしで始める</button></div>'}`;
@@ -816,6 +824,14 @@ route();connect();
   if(!standalone&&(ios||and)&&!/claude/.test(location.hostname)&&location.protocol==='https:'&&!seen){
     $('#instHow').textContent=ios?'Safari の共有ボタン →「ホーム画面に追加」':'ブラウザのメニュー →「ホーム画面に追加」';$('#inst').classList.add('show');
     $('#instX').onclick=()=>{$('#inst').classList.remove('show');try{localStorage.setItem('setnote.inst','1')}catch(e){}}}}
+/* 独立版: 公開されている版と見くらべて、新しければ「更新する」を出す。BUILD は公開のたびに書き換わる */
+const BUILD='20261122113634';
+if(location.protocol==='https:'&&!/claude/.test(location.hostname)){
+  fetch('./index.html?fresh='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{const m=t.match(/const BUILD='([^']+)'/);if(m&&m[1]!==BUILD)$('#upd').classList.add('show')}).catch(()=>{});
+  $('#updGo').onclick=async()=>{$('#updGo').textContent='更新中…';saveLocal();
+    try{const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));const rg=await navigator.serviceWorker.getRegistration();if(rg)await rg.update()}catch(e){}
+    location.reload()};
+}
 /* ホーム画面に追加して使う独立版だけ、オフラインでも開けるようにする（claude.ai 上では何もしない） */
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
